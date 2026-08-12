@@ -179,6 +179,7 @@ export async function recommend(params: {
   const candidates = await fetchCandidates(contentType, page);
   const scored = candidates
     .filter((c) => !exclude.has(c.id))
+    .filter((c) => !c.isMock && !c.contentType.endsWith("game"))
     .map((c) => {
       const r = scoreAndReasons(c, profile);
       return { c, s: r.score, reasons: r.reasons };

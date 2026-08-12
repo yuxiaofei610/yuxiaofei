@@ -4,6 +4,7 @@ import { getDetail } from "@/lib/adapters";
 import { buildExternalLinks } from "@/lib/external";
 import { CONTENT_TYPES, CONTENT_TYPE_LABELS, ContentType } from "@/lib/types";
 import DetailActions from "@/components/DetailActions";
+import DetailCover from "@/components/DetailCover";
 import ContentRow from "@/components/ContentRow";
 
 export async function generateMetadata({ params }: { params: { type: string; id: string } }): Promise<Metadata> {
@@ -42,14 +43,7 @@ export default async function DetailPage({ params }: { params: { type: string; i
 
       <div className="grid gap-6 md:grid-cols-[300px_1fr]">
         <div className="card aspect-[2/3] w-full overflow-hidden md:w-[300px]">
-          {content.coverImage ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={content.coverImage} alt={content.title} className="h-full w-full object-cover" />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-bg-hover to-bg-soft text-6xl font-black text-white/20">
-              {content.title.slice(0, 1)}
-            </div>
-          )}
+          <DetailCover content={content} />
         </div>
 
         <div>

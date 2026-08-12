@@ -25,6 +25,7 @@ function Cover({ c }: { c: NormalizedContent }) {
         src={c.coverImage}
         alt={c.title}
         loading="lazy"
+        referrerPolicy="no-referrer"
         onError={() => setErr(true)}
         className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
       />
