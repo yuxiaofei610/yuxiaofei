@@ -39,12 +39,12 @@ export default function HomePage() {
         </div>
       </section>
 
-      <ContentRow title="热门电影" type="movie" category="popular" />
-      <ContentRow title="热门电视剧" type="tv" category="popular" />
-      <ContentRow title="热门动漫" type="anime" category="popular" subtitle="数据来自 AniList 实时接口" />
-      <ContentRow title="热门综艺" type="variety" category="popular" />
-      <ContentRow title="热门纪录片" type="documentary" category="popular" />
-      <ContentRow title="热门音乐" type="music" category="popular" />
+      <ContentRow title="热门电影" type="movie" category="popular" subtitle="豆瓣 / TMDB 中文" />
+      <ContentRow title="热门电视剧" type="tv" category="popular" subtitle="豆瓣 / TMDB 中文" />
+      <ContentRow title="热门动漫" type="anime" category="popular" subtitle="数据来自 Bangumi" />
+      <ContentRow title="热门综艺" type="variety" category="popular" subtitle="豆瓣 / TMDB 中文" />
+      <ContentRow title="热门纪录片" type="documentary" category="popular" subtitle="TMDB 中文" />
+      <ContentRow title="热门音乐" type="music" category="popular" subtitle="QQ音乐 / iTunes" />
 
       <ContentRow title="热门手游" type="mobile_game" category="popular" />
       <ContentRow title="热门网游" type="online_game" category="popular" />
