@@ -1,12 +1,13 @@
 import { ContentType, NormalizedContent } from "../types";
 import { cacheGet, cacheSet, TTL } from "../cache";
 import { fetchAnimeList, fetchAnimeSearch, fetchAnimeDetail } from "./bangumi";
-import { fetchTmdbList, fetchTmdbSearch, fetchTmdbDetail, TmdbNoKeyError } from "./tmdb";
+import { fetchTmdbList, fetchTmdbSearch, fetchTmdbDetail, fetchTmdbDetailByDoubanId, TmdbNoKeyError } from "./tmdb";
 import { fetchRawgList, fetchRawgSearch, fetchRawgDetail, RawgNoKeyError } from "./rawg";
 import { fetchItunesList, fetchItunesSearch, fetchItunesDetail } from "./itunes";
 import { fetchMusicList, fetchMusicSearch, fetchMusicDetail, fetchVideoList, fetchVideoDetail, enrichVideoItems } from "./douban";
 import { fetchMusicList as fetchQqList, fetchMusicSearch as fetchQqSearch, fetchMusicDetail as fetchQqDetail } from "./qqmusic";
 import { attachImdbRatings } from "./imdb";
+import { translateToSearchQuery, deepseekEnabled } from "./deepseek";
 
 // 影视类（电影/电视剧/综艺/纪录片）附加 IMDb 双评分。
 const VIDEO_TYPES = new Set<ContentType>(["movie", "tv", "variety", "documentary"]);
@@ -142,6 +143,28 @@ export async function searchContent(query: string, ct?: ContentType): Promise<No
   return out;
 }
 
+// 封面补全：当某影视详情拿不到封面时，用片名在 TMDB 搜索。
+// 若配了 DEEPSEEK_API_KEY，先用 DeepSeek 把片名转成更准的英文搜索词再搜（仅增强，不配也能工作）。
+async function repairCover(
+  title: string,
+  originalTitle: string | null,
+  ct: ContentType
+): Promise<NormalizedContent | null> {
+  if (!title) return null;
+  const tmdbType: "movie" | "tv" = ct === "tv" ? "tv" : "movie";
+  let query = title;
+  if (deepseekEnabled()) {
+    const q = await translateToSearchQuery(title, originalTitle);
+    if (q) query = q;
+  }
+  try {
+    const items = await fetchTmdbSearch(tmdbType, query);
+    return items.find((i) => i.coverImage) || null;
+  } catch {
+    return null;
+  }
+}
+
 export async function getDetail(ct: ContentType, id: string): Promise<NormalizedContent | null> {
   const cacheKey = "detail:" + ct + ":" + id;
   const hit = cacheGet<NormalizedContent | null>(cacheKey);
@@ -153,10 +176,20 @@ export async function getDetail(ct: ContentType, id: string): Promise<Normalized
     if (ct === "anime") result = await fetchAnimeDetail(ext);
     else if (ct === "movie" || ct === "tv" || ct === "variety" || ct === "documentary") {
       result = await fetchVideoDetail(ext, ct);
-      if (!result) {
+      // 封面缺失才走补全链；不得在没有封面时把真实数据丢掉。
+      if (!result || !result.coverImage) {
         const tmdbType: "movie" | "tv" = ct === "tv" ? "tv" : "movie";
-        result = await fetchTmdbDetail(tmdbType, ext);
-        if (!result) result = mockDetail(id);
+        // 1) 用豆瓣 id 反查 TMDB（不要用豆瓣 id 直接查 TMDB detail，id 不匹配必 404）
+        const viaDouban = await fetchTmdbDetailByDoubanId(ext, tmdbType).catch(() => null);
+        if (viaDouban && viaDouban.coverImage) {
+          result = viaDouban;
+        } else {
+          // 2) 用片名搜索补全（DeepSeek 增强可选）
+          const title = result?.title || "";
+          const fixed = await repairCover(title, result?.originalTitle || null, ct).catch(() => null);
+          if (fixed) result = fixed;
+          else if (!result) result = mockDetail(id);
+        }
       }
     } else if (ct === "music") {
       result = await fetchQqDetail(ext);
@@ -178,6 +211,8 @@ export async function getDetail(ct: ContentType, id: string): Promise<Normalized
     await attachImdbRatings([result]);
   }
 
-  cacheSet(cacheKey, result, TTL.detail);
+  // 封面缺失 / mock 的结果只短缓存，避免错误封面被长期命中；正常结果缓存 6 小时。
+  const cacheable = !!result && !!result.coverImage && !result.isMock;
+  cacheSet(cacheKey, result, cacheable ? TTL.detail : 5 * 60 * 1000);
   return result;
 }

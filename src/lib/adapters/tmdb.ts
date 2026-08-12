@@ -109,3 +109,16 @@ export async function fetchTmdbDetail(ct: "movie" | "tv", id: string): Promise<N
     return null;
   }
 }
+
+// 豆瓣 id -> TMDB id 反查（TMDB 官方 external_source=douban）。
+// 详情页 fallback 时不能直接用豆瓣 id 查 /tv/{id}，必须用这一步拿到真实 TMDB id。
+export async function fetchTmdbDetailByDoubanId(doubanId: string, ct: "movie" | "tv"): Promise<NormalizedContent | null> {
+  try {
+    const find = await tmdbGet(`/find/${doubanId}`, { external_source: "douban" });
+    const arr = ct === "tv" ? find.tv_results : find.movie_results;
+    if (!arr || arr.length === 0) return null;
+    return fetchTmdbDetail(ct, String(arr[0].id));
+  } catch {
+    return null;
+  }
+}
