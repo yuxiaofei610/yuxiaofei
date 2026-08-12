@@ -32,13 +32,15 @@ function pickCover(s: any): string | null {
 function parseGenres(s: any): string[] {
   if (Array.isArray(s.genres) && s.genres.length > 0) return s.genres;
   const txt = s.card_subtitle || s.info || "";
-  const parts = txt.split(/\s*\/\s*/).map((p: string) => p.trim());
-  for (const part of parts) {
-    // 类型字段特征：全是中文字符且每个词 1-4 字，常见如 "动作 科幻 动画"
-    const words = part.split(/\s+/).filter(Boolean);
-    if (words.length > 0 && words.every((w: string) => /^[\u4e00-\u9fa5]{1,4}$/.test(w))) {
-      return words;
-    }
+  const parts = txt.split(/\s*\/\s*/).map((p: string) => p.trim()).filter(Boolean);
+  // card_subtitle 格式通常为：年份 / 国家 / 类型 / 导演 / 演员
+  // info 格式通常为：国家 / 类型 / 导演 / 演员
+  // 类型段特点：不是纯 4 位年份，且位于国家段之后。
+  if (parts.length >= 3 && /^\d{4}$/.test(parts[0]) && parts.length >= 4) {
+    return parts[2].split(/\s+/).filter(Boolean);
+  }
+  if (parts.length >= 2) {
+    return parts[1].split(/\s+/).filter(Boolean);
   }
   return [];
 }
