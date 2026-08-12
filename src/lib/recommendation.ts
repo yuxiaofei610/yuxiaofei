@@ -132,29 +132,40 @@ export interface RecommendResult {
 const VIDEO_TYPES = new Set<ContentType>(["movie", "tv", "variety", "documentary"]);
 
 async function fetchCandidates(ct: ContentType | "all", page: number): Promise<NormalizedContent[]> {
-  const types: ContentType[] = ct === "all"
-    ? ["movie", "tv", "anime", "variety", "documentary", "music"]
-    : [ct];
-  // 推荐流并发大容易超时：每种类型只取一个分类，anime 用 score 保证质量。
+  // 首页「为你推荐」并发拉取 6 个外部类型在 Vercel Hobby 10 秒限制下极易超时。
+  // 降为 2 个最稳的数据源：movie（豆瓣）+ music（QQ音乐），并加 5 秒总超时兜底。
+  const types: ContentType[] = ct === "all" ? ["movie", "music"] : [ct];
   const catsMap: Record<string, string[]> = {
-    anime: ["popular"],
     movie: ["popular"],
-    tv: ["popular"],
-    variety: ["popular"],
-    documentary: ["popular"],
     music: ["popular"],
   };
-  const all: NormalizedContent[] = [];
-  for (const t of types) {
+
+  const fetchOne = async (t: ContentType): Promise<NormalizedContent[]> => {
     const cats = catsMap[t] ?? ["popular"];
-    // 影视类直接走豆瓣列表（不 enrich），推荐流并发大，补详情会超时。
     const fetcher = VIDEO_TYPES.has(t)
       ? (c: string) => fetchVideoList(t, c, page).catch(() => [] as NormalizedContent[])
       : (c: string) => listContent(t, c, page).catch(() => [] as NormalizedContent[]);
     const lists = await Promise.all(cats.map(fetcher));
     const map = new Map<string, NormalizedContent>();
     for (const l of lists) for (const it of l) if (!map.has(it.id)) map.set(it.id, it);
-    all.push(...map.values());
+    return [...map.values()];
+  };
+
+  const all: NormalizedContent[] = [];
+  try {
+    const results = await Promise.race([
+      Promise.all(types.map(fetchOne)),
+      new Promise<NormalizedContent[][]>((_, rej) => setTimeout(() => rej(new Error("candidate timeout")), 5000)),
+    ]);
+    for (const r of results) all.push(...r);
+  } catch {
+    // 超时或失败时退化为只取 movie，确保首页有内容。
+    all.push(...(await fetchOne("movie")));
+  }
+
+  // 兜底：如果 movie+music 都空了，再试一次 movie（可能是瞬态网络问题）。
+  if (all.length === 0) {
+    all.push(...(await fetchOne("movie")));
   }
   return all;
 }
