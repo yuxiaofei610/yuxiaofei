@@ -1,10 +1,47 @@
 import { NormalizedContent } from "../types";
 import { cacheGet, cacheSet, TTL } from "../cache";
 
-// Douban（豆瓣）中文音乐数据源。Douban 无官方公开 API，使用移动端 rexxar 接口，
+// Douban（豆瓣）中文数据源。Douban 无官方公开 API，使用移动端 rexxar 接口，
 // 需伪造 Referer/UA 绕过反爬（实测裸请求返回 code 1287）。公网持续调用有被封风险，
-// 因此 listContent/searchContent 中以 iTunes 华语榜作为兜底。
+// 因此音乐/影视在 index.ts 中保留多阶回退。
 const REXXAR = "https://m.douban.com/rexxar/api/v2";
+
+// 豆瓣接口里封面字段非常不统一：列表页是 cover.url / pic.normal，详情页是 cover.image.normal.url / pic.normal 等。
+function pickCover(s: any): string | null {
+  if (!s) return null;
+  if (s.cover && typeof s.cover === "object") {
+    if (typeof s.cover.url === "string") return s.cover.url;
+    if (s.cover.image && typeof s.cover.image === "object") {
+      return s.cover.image.normal?.url || s.cover.image.large?.url || s.cover.image.small?.url || null;
+    }
+  }
+  if (typeof s.cover_url === "string" && s.cover_url) return s.cover_url;
+  if (typeof s.cover === "string" && s.cover) return s.cover;
+  if (s.pic && typeof s.pic === "object") {
+    return s.pic.normal || s.pic.large || s.pic.small || null;
+  }
+  if (s.image && typeof s.image === "object") {
+    return s.image.normal?.url || s.image.large?.url || s.image.small?.url || s.image.url || null;
+  }
+  if (typeof s.image === "string" && s.image) return s.image;
+  if (Array.isArray(s.photos) && s.photos.length > 0 && typeof s.photos[0] === "string") return s.photos[0];
+  return null;
+}
+
+// 列表页通常没有 genres 数组，可从 card_subtitle / info 里拆出来。
+function parseGenres(s: any): string[] {
+  if (Array.isArray(s.genres) && s.genres.length > 0) return s.genres;
+  const txt = s.card_subtitle || s.info || "";
+  const parts = txt.split(/\s*\/\s*/).map((p: string) => p.trim());
+  for (const part of parts) {
+    // 类型字段特征：全是中文字符且每个词 1-4 字，常见如 "动作 科幻 动画"
+    const words = part.split(/\s+/).filter(Boolean);
+    if (words.length > 0 && words.every((w: string) => /^[\u4e00-\u9fa5]{1,4}$/.test(w))) {
+      return words;
+    }
+  }
+  return [];
+}
 
 async function doubanGet(path: string): Promise<any> {
   const url = REXXAR + path;
@@ -35,7 +72,7 @@ function mapMusic(s: any, ct: "music"): NormalizedContent {
     title,
     originalTitle: null,
     description: subj.intro || subj.description || null,
-    coverImage: cover,
+    coverImage: pickCover(subj),
     releaseDate: subj.year ? String(subj.year) : subj.pubdate || null,
     rating,
     popularity: subj.rating?.count ?? null,
@@ -102,15 +139,15 @@ function mapVideo(s: any, ct: ContentType): NormalizedContent {
     id: `douban:${id}`,
     contentType: ct,
     title: subj.title || "未知",
-    originalTitle: null,
+    originalTitle: subj.original_title || null,
     description: subj.intro || subj.summary || null,
-    coverImage: subj.cover_url || subj.cover || null,
-    releaseDate: subj.year ? String(subj.year) : null,
-    rating,
+    coverImage: pickCover(subj),
+    releaseDate: subj.year ? String(subj.year) : subj.release_date || null,
+    rating: rating && rating > 0 ? rating : null,
     popularity: subj.rating && subj.rating.count != null ? subj.rating.count : null,
     language: null,
     country: null,
-    genres: subj.genres || [],
+    genres: parseGenres(subj),
     tags: [],
     externalId: String(id),
     source: "douban",
@@ -123,7 +160,7 @@ function mapVideo(s: any, ct: ContentType): NormalizedContent {
 const VIDEO_COLLECTION: Record<string, Record<string, string>> = {
   movie: { popular: "movie_hot", hot: "movie_hot", showing: "movie_showing", soon: "movie_soon" },
   tv: { popular: "tv_hot", hot: "tv_hot", airing: "tv_airing", domestic: "tv_domestic", us: "tv_american", kr: "tv_korean" },
-  variety: { popular: "tv_variety", hot: "tv_variety" },
+  variety: { popular: "tv_variety_show", hot: "tv_variety_show" },
   documentary: { popular: "movie_documentary", hot: "movie_documentary" },
 };
 
