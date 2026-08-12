@@ -87,3 +87,72 @@ export async function fetchMusicDetail(id: string): Promise<NormalizedContent | 
     return null;
   }
 }
+
+import { ContentType } from "../types";
+
+// ===== 影视（电影/电视剧/综艺/纪录片）中文数据源 =====
+// 复用 doubanGet（已带 Referer/UA 绕过 rexxar 反爬）。若裸请求被拦(code 1287)，
+// 由 index.ts 回退 TMDB zh-CN（仍是中文）。如需签名可后续补 _sig。
+function mapVideo(s: any, ct: ContentType): NormalizedContent {
+  const subj = s.subject || s;
+  const id = subj.id;
+  const rating =
+    subj.rating && subj.rating.value != null ? Math.round(subj.rating.value * 10) / 10 : null;
+  return {
+    id: `douban:${id}`,
+    contentType: ct,
+    title: subj.title || "未知",
+    originalTitle: null,
+    description: subj.intro || subj.summary || null,
+    coverImage: subj.cover_url || subj.cover || null,
+    releaseDate: subj.year ? String(subj.year) : null,
+    rating,
+    popularity: subj.rating && subj.rating.count != null ? subj.rating.count : null,
+    language: null,
+    country: null,
+    genres: subj.genres || [],
+    tags: [],
+    externalId: String(id),
+    source: "douban",
+    isMock: false,
+    artist: null,
+    album: null,
+  };
+}
+
+const VIDEO_COLLECTION: Record<string, Record<string, string>> = {
+  movie: { popular: "movie_hot", hot: "movie_hot", showing: "movie_showing", soon: "movie_soon" },
+  tv: { popular: "tv_hot", hot: "tv_hot", airing: "tv_airing", domestic: "tv_domestic", us: "tv_american", kr: "tv_korean" },
+  variety: { popular: "tv_variety", hot: "tv_variety" },
+  documentary: { popular: "movie_documentary", hot: "movie_documentary" },
+};
+
+export async function fetchVideoList(ct: ContentType, category: string, page = 1, perPage = 20): Promise<NormalizedContent[]> {
+  const cacheKey = `douban:video:${ct}:${category}:${page}:${perPage}`;
+  const hit = cacheGet<NormalizedContent[]>(cacheKey);
+  if (hit) return hit;
+  const collMap = VIDEO_COLLECTION[ct] || {};
+  const coll = collMap[category] || collMap.popular || "movie_hot";
+  const start = (page - 1) * perPage;
+  const data = await doubanGet(`/subject_collection/${coll}/items?start=${start}&count=${perPage}`);
+  const arr = data && data.subject_collection_items ? data.subject_collection_items : [];
+  const items = arr.map((s: any) => mapVideo(s, ct));
+  if (items.length === 0) throw new Error("empty");
+  cacheSet(cacheKey, items, TTL.hot);
+  return items;
+}
+
+export async function fetchVideoDetail(id: string, ct: ContentType): Promise<NormalizedContent | null> {
+  const numStr = id.indexOf(":") >= 0 ? id.slice(id.lastIndexOf(":") + 1) : id;
+  const cacheKey = `douban:video:detail:${numStr}`;
+  const hit = cacheGet<NormalizedContent | null>(cacheKey);
+  if (hit !== undefined) return hit;
+  try {
+    const s = await doubanGet(`/subject/${numStr}`);
+    const c = mapVideo(s, ct);
+    cacheSet(cacheKey, c, TTL.detail);
+    return c;
+  } catch (e) {
+    return null;
+  }
+}

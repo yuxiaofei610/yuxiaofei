@@ -4,10 +4,10 @@ import { fetchAnimeList, fetchAnimeSearch, fetchAnimeDetail } from "./bangumi";
 import { fetchTmdbList, fetchTmdbSearch, fetchTmdbDetail, TmdbNoKeyError } from "./tmdb";
 import { fetchRawgList, fetchRawgSearch, fetchRawgDetail, RawgNoKeyError } from "./rawg";
 import { fetchItunesList, fetchItunesSearch, fetchItunesDetail } from "./itunes";
-import { fetchMusicList, fetchMusicSearch, fetchMusicDetail } from "./douban";
+import { fetchMusicList, fetchMusicSearch, fetchMusicDetail, fetchVideoList, fetchVideoDetail } from "./douban";
+import { fetchMusicList as fetchQqList, fetchMusicSearch as fetchQqSearch, fetchMusicDetail as fetchQqDetail } from "./qqmusic";
 import { mockList, mockSearch, mockDetail } from "./mock";
 
-// 把各类型子分类映射到 RAWG 的 genre slug（仅在配置了 RAWG Key 时生效）
 function rawgGenreSlug(category: string): string | undefined {
   const m: Record<string, string> = {
     "genre:rpg": "role-playing-games-rpg",
@@ -30,57 +30,52 @@ function rawgGenreSlug(category: string): string | undefined {
   return m[category];
 }
 
-// ===== 对外主接口 =====
-
 export async function listContent(
   ct: ContentType,
   category: string,
   page = 1,
   perPage = 20
 ): Promise<NormalizedContent[]> {
-  const cacheKey = `list:${ct}:${category}:${page}:${perPage}`;
+  const cacheKey = "list:" + ct + ":" + category + ":" + page + ":" + perPage;
   const hit = cacheGet<NormalizedContent[]>(cacheKey);
   if (hit) return hit;
 
   let result: NormalizedContent[];
   try {
     if (ct === "anime") {
-      // Bangumi 中文动漫数据
       result = await fetchAnimeList(category, page, perPage);
-    } else if (ct === "tv" || ct === "variety" || ct === "documentary") {
-      // TMDB 中文数据（language=zh-CN）。综艺用真人秀标签近似，纪录片走电影端点(genre 99)
-      const tmdbCat = ct === "variety" ? "genre:10764" : ct === "documentary" ? "documentary" : category;
-      const tmdbType: "movie" | "tv" = ct === "tv" ? "tv" : "movie";
+    } else if (ct === "movie" || ct === "tv" || ct === "variety" || ct === "documentary") {
       try {
-        result = await fetchTmdbList(tmdbType, tmdbCat, page);
+        result = await fetchVideoList(ct, category, page, perPage);
         if (result.length === 0) throw new Error("empty");
       } catch (e) {
-        if (e instanceof TmdbNoKeyError) result = mockList(ct, category, page, perPage);
-        else result = mockList(ct, category, page, perPage);
+        const tmdbCat = ct === "variety" ? "genre:10764" : ct === "documentary" ? "documentary" : category;
+        const tmdbType: "movie" | "tv" = ct === "tv" ? "tv" : "movie";
+        try {
+          result = await fetchTmdbList(tmdbType, tmdbCat, page);
+          if (result.length === 0) throw new Error("empty");
+        } catch {
+          result = mockList(ct, category, page, perPage);
+        }
       }
     } else if (ct === "music") {
-      // Douban 中文音乐；失败回退 iTunes 华语榜(hk)
       try {
-        result = await fetchMusicList(category, page, perPage);
+        result = await fetchQqList(category, page, perPage);
         if (result.length === 0) throw new Error("empty");
       } catch {
-        result = await fetchItunesList(category, page, perPage).catch(() => mockList(ct, category, page, perPage));
-      }
-    } else if (ct === "movie") {
-      try {
-        result = await fetchTmdbList("movie", category, page);
-        if (result.length === 0) throw new Error("empty");
-      } catch (e) {
-        if (e instanceof TmdbNoKeyError) {
-          result = mockList(ct, category, page, perPage);
-        } else {
-          result = mockList(ct, category, page, perPage);
+        try {
+          result = await fetchMusicList(category, page, perPage);
+          if (result.length === 0) throw new Error("empty");
+        } catch {
+          result = await fetchItunesList(category, page, perPage).catch(() =>
+            mockList(ct, category, page, perPage)
+          );
         }
       }
     } else if (ct === "mobile_game" || ct === "online_game" || ct === "single_player_game") {
       try {
         const g = rawgGenreSlug(category);
-        result = await fetchRawgList(ct, g ? `genre:${g}` : category, page);
+        result = await fetchRawgList(ct, g ? "genre:" + g : category, page);
         if (result.length === 0) throw new Error("empty");
       } catch (e) {
         if (e instanceof RawgNoKeyError) {
@@ -101,11 +96,13 @@ export async function listContent(
 }
 
 export async function searchContent(query: string, ct?: ContentType): Promise<NormalizedContent[]> {
-  const cacheKey = `search:${ct ?? "all"}:${query}`;
+  const cacheKey = "search:" + (ct ?? "all") + ":" + query;
   const hit = cacheGet<NormalizedContent[]>(cacheKey);
   if (hit) return hit;
 
-  const types: ContentType[] = ct ? [ct] : ["movie", "tv", "anime", "variety", "documentary", "music", "mobile_game", "online_game", "single_player_game"];
+  const types: ContentType[] = ct
+    ? [ct]
+    : ["movie", "tv", "anime", "variety", "documentary", "music", "mobile_game", "online_game", "single_player_game"];
   const out: NormalizedContent[] = [];
 
   await Promise.all(
@@ -116,7 +113,8 @@ export async function searchContent(query: string, ct?: ContentType): Promise<No
         else if (t === "tv" || t === "variety" || t === "documentary")
           items = await fetchTmdbSearch(t === "documentary" ? "movie" : "tv", query);
         else if (t === "music") {
-          try { items = await fetchMusicSearch(query); } catch { items = await fetchItunesSearch(query).catch(() => []); }
+          try { items = await fetchQqSearch(query); }
+          catch { try { items = await fetchMusicSearch(query); } catch { items = await fetchItunesSearch(query).catch(() => []); } }
         } else if (t === "movie") {
           try { items = await fetchTmdbSearch("movie", query); } catch (e) { if (e instanceof TmdbNoKeyError) items = mockSearch(t, query); }
         } else if (t === "mobile_game" || t === "online_game" || t === "single_player_game") {
@@ -136,7 +134,7 @@ export async function searchContent(query: string, ct?: ContentType): Promise<No
 }
 
 export async function getDetail(ct: ContentType, id: string): Promise<NormalizedContent | null> {
-  const cacheKey = `detail:${ct}:${id}`;
+  const cacheKey = "detail:" + ct + ":" + id;
   const hit = cacheGet<NormalizedContent | null>(cacheKey);
   if (hit !== undefined) return hit;
 
@@ -144,15 +142,19 @@ export async function getDetail(ct: ContentType, id: string): Promise<Normalized
   const ext = id.includes(":") ? id.slice(id.lastIndexOf(":") + 1) : id;
   try {
     if (ct === "anime") result = await fetchAnimeDetail(ext);
-    else if (ct === "tv" || ct === "variety" || ct === "documentary") {
-      result = await fetchTmdbDetail(ct === "documentary" ? "movie" : "tv", ext);
-      if (!result) result = mockDetail(id);
+    else if (ct === "movie" || ct === "tv" || ct === "variety" || ct === "documentary") {
+      result = await fetchVideoDetail(ext, ct);
+      if (!result) {
+        const tmdbType: "movie" | "tv" = ct === "tv" ? "tv" : "movie";
+        result = await fetchTmdbDetail(tmdbType, ext);
+        if (!result) result = mockDetail(id);
+      }
     } else if (ct === "music") {
-      result = await fetchMusicDetail(ext);
-      if (!result) result = mockDetail(id);
-    } else if (ct === "movie") {
-      try { result = await fetchTmdbDetail("movie", ext); } catch { result = null; }
-      if (!result) result = mockDetail(id);
+      result = await fetchQqDetail(ext);
+      if (!result) {
+        result = await fetchMusicDetail(ext);
+        if (!result) result = mockDetail(id);
+      }
     } else if (ct === "mobile_game" || ct === "online_game" || ct === "single_player_game") {
       try { result = await fetchRawgDetail(ext); } catch { result = null; }
       if (!result) result = mockDetail(id);
