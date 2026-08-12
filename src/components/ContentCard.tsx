@@ -16,9 +16,29 @@ const RES_ICON: Record<string, string> = {
   official: "官网",
 };
 
+function decodeOriginalCover(proxyUrl: string): string | null {
+  try {
+    const u = new URL(proxyUrl, typeof window !== "undefined" ? window.location.href : "https://yuxiaofei.vercel.app");
+    return u.searchParams.get("url");
+  } catch {
+    return null;
+  }
+}
+
 function Cover({ c }: { c: NormalizedContent }) {
-  const [err, setErr] = useState(false);
-  if (c.coverImage && !err) {
+  const [errProxy, setErrProxy] = useState(false);
+  const [errDirect, setErrDirect] = useState(false);
+  const directUrl = c.coverImage?.startsWith("/api/proxy-image") ? decodeOriginalCover(c.coverImage) : null;
+
+  if (!c.coverImage || (errProxy && (!directUrl || errDirect))) {
+    return (
+      <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-bg-hover to-bg-soft text-3xl font-black text-white/30">
+        {c.title.slice(0, 1)}
+      </div>
+    );
+  }
+
+  if (!errProxy) {
     // eslint-disable-next-line @next/next/no-img-element
     return (
       <img
@@ -26,15 +46,23 @@ function Cover({ c }: { c: NormalizedContent }) {
         alt={c.title}
         loading="lazy"
         referrerPolicy="no-referrer"
-        onError={() => setErr(true)}
+        onError={() => setErrProxy(true)}
         className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
       />
     );
   }
+
+  // 代理失败时回退到原图
   return (
-    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-bg-hover to-bg-soft text-3xl font-black text-white/30">
-      {c.title.slice(0, 1)}
-    </div>
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={directUrl!}
+      alt={c.title}
+      loading="lazy"
+      referrerPolicy="no-referrer"
+      onError={() => setErrDirect(true)}
+      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+    />
   );
 }
 
