@@ -37,6 +37,7 @@ function key(): string {
 async function tmdbGet(path: string, params: Record<string, string | number>): Promise<any> {
   const url = new URL(TMDB_API + path);
   url.searchParams.set("api_key", key());
+  url.searchParams.set("language", "zh-CN");
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, String(v));
   const res = await fetch(url.toString(), { signal: AbortSignal.timeout(8000) });
   if (!res.ok) throw new Error(`TMDB HTTP ${res.status}`);
