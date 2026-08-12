@@ -69,7 +69,7 @@ export default function DetailActions({ content, external }: { content: Normaliz
         <CopyButton text={content.title} className="btn btn-outline" />
       </div>
 
-      {external.length > 0 && (
+      {!isGame && external.length > 0 && (
         <div>
           <p className="mb-1 text-sm font-semibold text-white">外部资源入口</p>
           <div className="flex flex-wrap gap-2">
