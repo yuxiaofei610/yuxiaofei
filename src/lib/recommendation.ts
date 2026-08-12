@@ -1,7 +1,8 @@
 import { prisma } from "./prisma";
 import { ContentType, NormalizedContent } from "./types";
 import { listContent } from "./adapters";
-import { fetchVideoList } from "./adapters/douban";
+import { fetchVideoList, fetchMusicList } from "./adapters/douban";
+import { mockList } from "./adapters/mock";
 
 // 推荐引擎（独立模块，公式集中于此，前端不直接持有打分逻辑）
 //
@@ -131,42 +132,85 @@ export interface RecommendResult {
 // contentType = "all" 时跨全部类型混合（用于首页「为你推荐」）
 const VIDEO_TYPES = new Set<ContentType>(["movie", "tv", "variety", "documentary"]);
 
+const RECOMMEND_TIMEOUT_MS = 4000;
+const CANDIDATE_PAGES = 3;
+const CANDIDATE_PER_PAGE = 20;
+
+async function fetchWithTimeout<T>(fn: () => Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    fn(),
+    new Promise<T>((_, rej) => setTimeout(() => rej(new Error("timeout")), ms)),
+  ]);
+}
+
 async function fetchCandidates(ct: ContentType | "all", page: number): Promise<NormalizedContent[]> {
-  // 首页「为你推荐」并发拉取 6 个外部类型在 Vercel Hobby 10 秒限制下极易超时。
-  // 降为 2 个最稳的数据源：movie（豆瓣）+ music（QQ音乐），并加 5 秒总超时兜底。
+  // 首页「为你推荐」在 Vercel Hobby 10 秒硬限制下极易超时。
+  // 策略：
+  // 1. 只留 movie（豆瓣）+ music（豆瓣音乐），这两路最稳；
+  // 2. 每类并发拉取多页，扩大候选池，避免单页被历史记录 exclude 完；
+  // 3. 每页独立 4 秒超时，用 allSettled 避免一个失败带崩全部；
+  // 4. 真实源全部为空/失败时，用 mock 兜底并标记 isMock，确保首页不挂。
   const types: ContentType[] = ct === "all" ? ["movie", "music"] : [ct];
-  const catsMap: Record<string, string[]> = {
-    movie: ["popular"],
-    music: ["popular"],
+
+  const fetchPage = async (t: ContentType, p: number): Promise<NormalizedContent[]> => {
+    try {
+      if (t === "movie") {
+        return await fetchWithTimeout(
+          () => fetchVideoList(t, "popular", p, CANDIDATE_PER_PAGE, false),
+          RECOMMEND_TIMEOUT_MS
+        );
+      }
+      if (t === "music") {
+        // 推荐里直接走豆瓣音乐榜，比 QQ 音乐接口更稳
+        return await fetchWithTimeout(
+          () => fetchMusicList("popular", p, CANDIDATE_PER_PAGE),
+          RECOMMEND_TIMEOUT_MS
+        );
+      }
+      return await fetchWithTimeout(
+        () => listContent(t, "popular", p, CANDIDATE_PER_PAGE),
+        RECOMMEND_TIMEOUT_MS
+      );
+    } catch (e) {
+      console.error(`[recommend] fetch failed: ${t} page ${p}`, e);
+      return [];
+    }
   };
 
-  const fetchOne = async (t: ContentType): Promise<NormalizedContent[]> => {
-    const cats = catsMap[t] ?? ["popular"];
-    const fetcher = VIDEO_TYPES.has(t)
-      ? (c: string) => fetchVideoList(t, c, page).catch(() => [] as NormalizedContent[])
-      : (c: string) => listContent(t, c, page).catch(() => [] as NormalizedContent[]);
-    const lists = await Promise.all(cats.map(fetcher));
-    const map = new Map<string, NormalizedContent>();
-    for (const l of lists) for (const it of l) if (!map.has(it.id)) map.set(it.id, it);
-    return [...map.values()];
-  };
-
-  const all: NormalizedContent[] = [];
-  try {
-    const results = await Promise.race([
-      Promise.all(types.map(fetchOne)),
-      new Promise<NormalizedContent[][]>((_, rej) => setTimeout(() => rej(new Error("candidate timeout")), 5000)),
-    ]);
-    for (const r of results) all.push(...r);
-  } catch {
-    // 超时或失败时退化为只取 movie，确保首页有内容。
-    all.push(...(await fetchOne("movie")));
+  const jobs: Promise<NormalizedContent[]>[] = [];
+  for (const t of types) {
+    for (let i = 0; i < CANDIDATE_PAGES; i++) {
+      jobs.push(fetchPage(t, page + i));
+    }
   }
 
-  // 兜底：如果 movie+music 都空了，再试一次 movie（可能是瞬态网络问题）。
-  if (all.length === 0) {
-    all.push(...(await fetchOne("movie")));
+  const settled = await Promise.allSettled(jobs);
+  const map = new Map<string, NormalizedContent>();
+  let realCount = 0;
+  for (const r of settled) {
+    if (r.status === "fulfilled") {
+      for (const it of r.value) {
+        if (!map.has(it.id)) {
+          map.set(it.id, it);
+          if (!it.isMock) realCount++;
+        }
+      }
+    }
   }
+
+  let all = [...map.values()];
+  console.log(`[recommend] real candidates: ${realCount}, total: ${all.length}`);
+
+  // 兜底 A：真实源全部为空/失败时，用 mock 填充，保证首页有内容。
+  if (realCount === 0) {
+    console.warn("[recommend] all real sources empty, falling back to mock");
+    for (const t of types) {
+      const mock = mockList(t, "popular", page, CANDIDATE_PER_PAGE);
+      for (const it of mock) if (!map.has(it.id)) map.set(it.id, it);
+    }
+    all = [...map.values()];
+  }
+
   return all;
 }
 
@@ -178,6 +222,7 @@ export async function recommend(params: {
   page?: number;
 }): Promise<RecommendResult> {
   const { userId, contentType, count = 20, source, page = 1 } = params;
+  const types: ContentType[] = contentType === "all" ? ["movie", "music"] : [contentType];
   const profile = await getProfile(userId);
 
   // 排除：不喜欢的内容 + 最近在本 source 展示过的（换一批去重）
@@ -196,12 +241,28 @@ export async function recommend(params: {
   const candidates = await fetchCandidates(contentType, page);
   const scored = candidates
     .filter((c) => !exclude.has(c.id))
-    .filter((c) => !c.isMock && !c.contentType.endsWith("game"))
+    .filter((c) => !c.contentType.endsWith("game"))
     .map((c) => {
       const r = scoreAndReasons(c, profile);
       return { c, s: r.score, reasons: r.reasons };
     })
     .sort((a, b) => b.s - a.s);
+
+  // 兜底 B：排除后若真实内容不足一半，补充 mock 保证展示。
+  const realScored = scored.filter((x) => !x.c.isMock);
+  const mockScored = scored.filter((x) => x.c.isMock);
+  if (realScored.length < count / 2 && mockScored.length === 0) {
+    console.warn(`[recommend] real scored ${realScored.length} < ${count / 2}, padding mock`);
+    for (const t of types) {
+      for (const it of mockList(t, "popular", page, count)) {
+        if (!exclude.has(it.id)) {
+          const r = scoreAndReasons(it, profile);
+          scored.push({ c: it, s: r.score, reasons: r.reasons });
+        }
+      }
+    }
+    scored.sort((a, b) => b.s - a.s);
+  }
 
   // 首页混合推荐（contentType === "all"）跨类型轮转，避免结果被单一类型刷屏
   let picked: { c: NormalizedContent; s: number; reasons: string[] }[];

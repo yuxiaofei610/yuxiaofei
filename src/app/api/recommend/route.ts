@@ -22,7 +22,8 @@ export async function GET(req: NextRequest) {
       isColdStart: result.isColdStart,
       profile: result.profile,
       source: result.items[0]?.source ?? "unknown",
-      isMock: result.items[0]?.isMock ?? false,
+      isMock: result.items.some((it) => it.isMock),
+      debug: { candidateCount: result.items.length },
     });
   } catch (e: any) {
     return NextResponse.json({ error: "RECOMMEND_FAILED", message: String(e?.message || e) }, { status: 502 });
