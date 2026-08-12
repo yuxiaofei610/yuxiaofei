@@ -11,12 +11,13 @@ import { cacheGet, cacheSet, TTL } from "../cache";
 const RSS = "https://itunes.apple.com";
 const SEARCH = "https://itunes.apple.com";
 
-// 分类 key → RSS 国家代码
+// 分类 key → RSS 国家代码。popular 默认 hk（华语）以保证中文歌名；
+// cn RSS 不可用，hk 榜含大量华语内容。
 const RSS_COUNTRY: Record<string, string> = {
-  popular: "us",
+  popular: "hk",
   us: "us",
   jp: "jp",
-  cn: "hk", // cn RSS 不可用，hk 榜含华语
+  cn: "hk",
 };
 
 function bigArt(url?: string | null): string | null {
