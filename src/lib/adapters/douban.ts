@@ -17,20 +17,31 @@ function proxyImageUrl(url: string): string {
   return url;
 }
 
-// 豆瓣接口里封面字段非常不统一：列表页是 cover.url / pic.normal，详情页是 cover.image.normal.url / pic.normal 等。
+// 豆瓣接口里封面字段非常不统一：
+// 列表页：cover.url / pic.normal（都是海报）；
+// 详情页：cover_url / pic.large / pic.normal 是海报，cover.image.normal.url 多为剧照/用户上传图，优先级应靠后。
 function pickCover(s: any): string | null {
   if (!s) return null;
   let raw: string | null = null;
-  if (s.cover && typeof s.cover === "object") {
-    raw = s.cover.url || s.cover.image?.normal?.url || s.cover.image?.large?.url || s.cover.image?.small?.url || null;
+  // 1. 列表页主海报
+  if (s.cover && typeof s.cover === "object" && typeof s.cover.url === "string" && s.cover.url) {
+    raw = s.cover.url;
   }
+  // 2. 详情页主海报（最可靠）
   if (!raw && typeof s.cover_url === "string" && s.cover_url) raw = s.cover_url;
+  // 3. 通用字符串 cover
   if (!raw && typeof s.cover === "string" && s.cover) raw = s.cover;
+  // 4. 详情页 pic（海报尺寸）
   if (!raw && s.pic && typeof s.pic === "object") {
-    raw = s.pic.normal || s.pic.large || s.pic.small || null;
+    raw = s.pic.large || s.pic.normal || s.pic.small || null;
   }
+  // 5. 详情页 cover.image 兜底（剧照/用户上传图）
+  if (!raw && s.cover && typeof s.cover === "object") {
+    raw = s.cover.image?.large?.url || s.cover.image?.normal?.url || s.cover.image?.small?.url || null;
+  }
+  // 6. 其他 image 字段
   if (!raw && s.image && typeof s.image === "object") {
-    raw = s.image.normal?.url || s.image.large?.url || s.image.small?.url || s.image.url || null;
+    raw = s.image.large?.url || s.image.normal?.url || s.image.small?.url || s.image.url || null;
   }
   if (!raw && typeof s.image === "string" && s.image) raw = s.image;
   if (!raw && Array.isArray(s.photos) && s.photos.length > 0 && typeof s.photos[0] === "string") raw = s.photos[0];
@@ -230,7 +241,8 @@ export async function fetchVideoList(
 
 export async function fetchVideoDetail(id: string, ct: ContentType): Promise<NormalizedContent | null> {
   const numStr = id.indexOf(":") >= 0 ? id.slice(id.lastIndexOf(":") + 1) : id;
-  const cacheKey = `douban:video:detail:${numStr}`;
+  // v2: pickCover 优先级调整，旧缓存可能存了错误的 cover.image 剧照 URL
+  const cacheKey = `douban:video:detail:v2:${numStr}`;
   const hit = cacheGet<NormalizedContent | null>(cacheKey);
   if (hit !== undefined) return hit;
   try {
