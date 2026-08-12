@@ -1,0 +1,163 @@
+// 综合娱乐 + 游戏个性化推荐平台 —— 数据模型
+//
+// 生产环境使用 PostgreSQL（provider = "postgresql"），部署到 Vercel / Cloudflare 等平台。
+// 本地开发如需调试，也建议直接使用 PostgreSQL（Neon / Supabase 免费档，或本地 Docker），
+// 因为 Vercel 等 Serverless 平台文件系统只读且不共享，无法挂载 SQLite 文件。
+//
+// 初始化数据库：
+//   npx prisma generate
+//   npx prisma db push        # 或 prisma migrate deploy（使用迁移）
+//
+// 本项目所有数组字段均以 CSV 字符串存储（如 "a,b,c"），SQLite 与 PostgreSQL 均兼容，
+// 切换数据库无需改动字段定义。
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  username     String
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  sessions     Session[]
+  preferences  UserPreference[]
+}
+
+// 登录会话（cookie 中存 token）
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+// 兴趣画像：按 genre / tag 维度记录权重（正=偏好，负=排斥）
+model UserPreference {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind      String   // "genre" | "tag"
+  key       String   // 具体类型或标签
+  weight    Float    @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, kind, key])
+}
+
+// 统一内容模型：所有娱乐 / 游戏类型共用
+model Content {
+  id            String   @id // 形如 "anime:123" / "mock_movie:abc"
+  contentType   String   // movie | tv | anime | variety | documentary | music | mobile_game | online_game | single_player_game
+  title         String
+  originalTitle String?
+  description   String?
+  coverImage    String?
+  releaseDate   String?
+  rating        Float?
+  popularity    Float?
+  language      String?
+  country       String?
+  genres        String?  // CSV
+  tags          String?  // CSV
+  externalId    String?
+  source        String   // anilist | tmdb | rawg | mock
+  isMock        Boolean  @default(false)
+  // 音乐 / 游戏专属
+  artist        String?
+  album         String?
+  developer     String?
+  publisher     String?
+  platforms     String?  // CSV
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model WatchHistory {
+  id          String   @id @default(cuid())
+  userId      String
+  contentId   String
+  contentType String
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+}
+
+model GamePlayHistory {
+  id          String   @id @default(cuid())
+  userId      String
+  contentId   String
+  contentType String
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Like {
+  id          String   @id @default(cuid())
+  userId      String
+  contentId   String
+  contentType String
+  createdAt   DateTime @default(now())
+
+  @@unique([userId, contentId])
+  @@index([userId])
+}
+
+model Dislike {
+  id          String   @id @default(cuid())
+  userId      String
+  contentId   String
+  contentType String
+  createdAt   DateTime @default(now())
+
+  @@unique([userId, contentId])
+  @@index([userId])
+}
+
+// 推荐历史：用于换一批去重、推荐优化、统计
+model RecommendationHistory {
+  id        String   @id @default(cuid())
+  userId    String
+  contentId String
+  source    String   // homepage | movie | tv | anime | ... | refresh
+  shownAt   DateTime @default(now())
+  action    String?  // viewed | liked | disliked | clicked | null
+
+  @@index([userId, contentId])
+  @@index([userId, source])
+}
+
+model SearchHistory {
+  id        String   @id @default(cuid())
+  userId    String?
+  query     String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// 外部资源入口（严格按类型规则，绝不伪造 URL）
+model ExternalResource {
+  id          String   @id @default(cuid())
+  contentId   String
+  resourceType String  // bilibili | cloud_drive | anime_resource | qq_music | official | steam | app_store | google_play | epic | playstation | xbox | nintendo
+  url         String
+  title       String?
+  isVerified  Boolean  @default(false) // 已验证具体链接=true；仅搜索/入口=false
+  source      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([contentId])
+}

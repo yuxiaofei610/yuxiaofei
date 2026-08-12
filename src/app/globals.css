@@ -1,0 +1,63 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html, body {
+  background: #0b0d12;
+  color: #e8ebf2;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #2a3140;
+  border-radius: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@layer components {
+  .card {
+    @apply bg-bg-card border border-line rounded-xl overflow-hidden transition-colors;
+  }
+  .card:hover {
+    @apply border-bg-hover;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-50;
+  }
+  .btn-brand {
+    @apply bg-brand text-white hover:bg-brand-soft;
+  }
+  .btn-ghost {
+    @apply bg-bg-hover text-muted hover:text-white;
+  }
+  .btn-outline {
+    @apply border border-line text-muted hover:text-white hover:border-bg-hover;
+  }
+  .chip {
+    @apply inline-flex items-center rounded-full px-2.5 py-1 text-xs bg-bg-hover text-muted;
+  }
+  .skeleton {
+    @apply relative overflow-hidden bg-bg-hover rounded-md;
+  }
+  .skeleton::after {
+    @apply absolute inset-0 -translate-x-full animate-shimmer;
+    content: "";
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06), transparent);
+  }
+}
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
