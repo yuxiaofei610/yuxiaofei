@@ -186,7 +186,7 @@ async function enrichOne(c: NormalizedContent): Promise<NormalizedContent> {
   return c;
 }
 
-async function enrichVideoItems(items: NormalizedContent[]): Promise<NormalizedContent[]> {
+export async function enrichVideoItems(items: NormalizedContent[]): Promise<NormalizedContent[]> {
   return Promise.all(items.map((it) => enrichOne(it).catch(() => it)));
 }
 
@@ -197,8 +197,14 @@ const VIDEO_COLLECTION: Record<string, Record<string, string>> = {
   documentary: { popular: "movie_documentary", hot: "movie_documentary" },
 };
 
-export async function fetchVideoList(ct: ContentType, category: string, page = 1, perPage = 20): Promise<NormalizedContent[]> {
-  const cacheKey = `douban:video:${ct}:${category}:${page}:${perPage}`;
+export async function fetchVideoList(
+  ct: ContentType,
+  category: string,
+  page = 1,
+  perPage = 20,
+  enrich = false
+): Promise<NormalizedContent[]> {
+  const cacheKey = `douban:video:${ct}:${category}:${page}:${perPage}:${enrich ? 1 : 0}`;
   const hit = cacheGet<NormalizedContent[]>(cacheKey);
   if (hit) return hit;
   const collMap = VIDEO_COLLECTION[ct] || {};
@@ -208,9 +214,9 @@ export async function fetchVideoList(ct: ContentType, category: string, page = 1
   const arr = data && data.subject_collection_items ? data.subject_collection_items : [];
   const items = arr.map((s: any) => mapVideo(s, ct));
   if (items.length === 0) throw new Error("empty");
-  const enriched = await enrichVideoItems(items);
-  cacheSet(cacheKey, enriched, TTL.hot);
-  return enriched;
+  const result = enrich ? await enrichVideoItems(items) : items;
+  cacheSet(cacheKey, result, TTL.hot);
+  return result;
 }
 
 export async function fetchVideoDetail(id: string, ct: ContentType): Promise<NormalizedContent | null> {

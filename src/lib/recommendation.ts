@@ -1,6 +1,7 @@
 import { prisma } from "./prisma";
 import { ContentType, NormalizedContent } from "./types";
 import { listContent } from "./adapters";
+import { fetchVideoList } from "./adapters/douban";
 
 // 推荐引擎（独立模块，公式集中于此，前端不直接持有打分逻辑）
 //
@@ -128,6 +129,8 @@ export interface RecommendResult {
 
 // 获取候选集（跨多个分类，保证多样性），并分页以支持「换一批」
 // contentType = "all" 时跨全部类型混合（用于首页「为你推荐」）
+const VIDEO_TYPES = new Set<ContentType>(["movie", "tv", "variety", "documentary"]);
+
 async function fetchCandidates(ct: ContentType | "all", page: number): Promise<NormalizedContent[]> {
   const types: ContentType[] = ct === "all"
     ? ["movie", "tv", "anime", "variety", "documentary", "music"]
@@ -138,7 +141,11 @@ async function fetchCandidates(ct: ContentType | "all", page: number): Promise<N
   const all: NormalizedContent[] = [];
   for (const t of types) {
     const cats = catsMap[t] ?? ["popular", "top", "new"];
-    const lists = await Promise.all(cats.map((c) => listContent(t, c, page).catch(() => [] as NormalizedContent[])));
+    // 影视类直接走豆瓣列表（不 enrich），推荐流并发大，补详情会超时。
+    const fetcher = VIDEO_TYPES.has(t)
+      ? (c: string) => fetchVideoList(t, c, page).catch(() => [] as NormalizedContent[])
+      : (c: string) => listContent(t, c, page).catch(() => [] as NormalizedContent[]);
+    const lists = await Promise.all(cats.map(fetcher));
     const map = new Map<string, NormalizedContent>();
     for (const l of lists) for (const it of l) if (!map.has(it.id)) map.set(it.id, it);
     all.push(...map.values());

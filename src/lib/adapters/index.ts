@@ -4,7 +4,7 @@ import { fetchAnimeList, fetchAnimeSearch, fetchAnimeDetail } from "./bangumi";
 import { fetchTmdbList, fetchTmdbSearch, fetchTmdbDetail, TmdbNoKeyError } from "./tmdb";
 import { fetchRawgList, fetchRawgSearch, fetchRawgDetail, RawgNoKeyError } from "./rawg";
 import { fetchItunesList, fetchItunesSearch, fetchItunesDetail } from "./itunes";
-import { fetchMusicList, fetchMusicSearch, fetchMusicDetail, fetchVideoList, fetchVideoDetail } from "./douban";
+import { fetchMusicList, fetchMusicSearch, fetchMusicDetail, fetchVideoList, fetchVideoDetail, enrichVideoItems } from "./douban";
 import { fetchMusicList as fetchQqList, fetchMusicSearch as fetchQqSearch, fetchMusicDetail as fetchQqDetail } from "./qqmusic";
 import { attachImdbRatings } from "./imdb";
 
@@ -50,7 +50,7 @@ export async function listContent(
       result = await fetchAnimeList(category, page, perPage);
     } else if (ct === "movie" || ct === "tv" || ct === "variety" || ct === "documentary") {
       try {
-        result = await fetchVideoList(ct, category, page, perPage);
+        result = await fetchVideoList(ct, category, page, perPage, true);
         if (result.length === 0) throw new Error("empty");
       } catch (e) {
         const tmdbCat = ct === "variety" ? "genre:10764" : ct === "documentary" ? "documentary" : category;
