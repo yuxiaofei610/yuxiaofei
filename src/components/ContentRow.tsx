@@ -69,11 +69,11 @@ export default function ContentRow({ title, type, mode = "content", category = "
     <section className="py-4">
       <div className="mb-2 flex items-end justify-between">
         <div>
-          <h2 className="flex items-center gap-2 text-lg font-bold">
+          <h2 className="section-title">
             {title}
             {isMock && <span className="rounded bg-yellow-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-yellow-400">MOCK 数据源</span>}
           </h2>
-          {subtitle && <p className="text-xs text-muted">{subtitle}</p>}
+          {subtitle && <p className="mt-0.5 text-xs text-muted">{subtitle}</p>}
         </div>
         <div className="flex items-center gap-1">
           <button onClick={refresh} disabled={loading} className="btn btn-outline text-sm">换一批 ↻</button>

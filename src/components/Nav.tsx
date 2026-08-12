@@ -14,18 +14,11 @@ const TOP_LINKS = [
   { href: "/music", label: "音乐" },
 ];
 
-const GAME_LINKS = [
-  { href: "/games/mobile", label: "手游" },
-  { href: "/games/online", label: "网游" },
-  { href: "/games/single", label: "单机" },
-];
-
 export default function Nav() {
   const pathname = usePathname();
   const router = useRouter();
   const [user, setUser] = useState<{ username: string } | null>(null);
   const [q, setQ] = useState("");
-  const [gameOpen, setGameOpen] = useState(false);
 
   useEffect(() => {
     fetch("/api/user").then((r) => r.json()).then((d) => setUser(d.user)).catch(() => {});
@@ -58,22 +51,7 @@ export default function Nav() {
                 {l.label}
               </Link>
             ))}
-            <div className="relative" onMouseLeave={() => setGameOpen(false)}>
-              <button onMouseEnter={() => setGameOpen(true)} className={`rounded-lg px-3 py-1.5 text-sm ${pathname.startsWith("/games") ? "text-white bg-bg-hover" : "text-muted hover:text-white"}`}>
-                游戏 ▾
-              </button>
-              {gameOpen && (
-                <div className="absolute left-0 top-full mt-1 w-32 rounded-lg border border-line bg-bg-soft p-1 shadow-xl">
-                  {GAME_LINKS.map((g) => (
-                    <Link key={g.href} href={g.href} className="block rounded-md px-3 py-1.5 text-sm text-muted hover:bg-bg-hover hover:text-white">
-                      {g.label}
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
             <Link href="/watched" className={`rounded-lg px-3 py-1.5 text-sm ${isActive("/watched") ? "text-white bg-bg-hover" : "text-muted hover:text-white"}`}>已看</Link>
-            <Link href="/played" className={`rounded-lg px-3 py-1.5 text-sm ${isActive("/played") ? "text-white bg-bg-hover" : "text-muted hover:text-white"}`}>已玩</Link>
             <Link href="/preferences" className={`rounded-lg px-3 py-1.5 text-sm ${isActive("/preferences") ? "text-white bg-bg-hover" : "text-muted hover:text-white"}`}>我的偏好</Link>
           </nav>
 
@@ -100,7 +78,7 @@ export default function Nav() {
 
       {/* 移动端底部导航 */}
       <nav className="fixed bottom-0 left-0 right-0 z-40 grid grid-cols-5 border-t border-line bg-bg/95 backdrop-blur md:hidden">
-        {[{ href: "/", label: "首页" }, { href: "/movie", label: "分类" }, { href: "/search", label: "搜索" }, { href: "/watched", label: "已看/玩" }, { href: "/preferences", label: "我的" }].map((i) => (
+        {[{ href: "/", label: "首页" }, { href: "/movie", label: "分类" }, { href: "/search", label: "搜索" }, { href: "/watched", label: "已看" }, { href: "/preferences", label: "我的" }].map((i) => (
           <Link key={i.href} href={i.href} className={`flex flex-col items-center gap-0.5 py-2 text-[11px] ${isActive(i.href) ? "text-brand" : "text-muted"}`}>
             {i.label}
           </Link>

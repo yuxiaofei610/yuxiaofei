@@ -130,13 +130,10 @@ export interface RecommendResult {
 // contentType = "all" 时跨全部类型混合（用于首页「为你推荐」）
 async function fetchCandidates(ct: ContentType | "all", page: number): Promise<NormalizedContent[]> {
   const types: ContentType[] = ct === "all"
-    ? ["movie", "tv", "anime", "variety", "documentary", "music", "mobile_game", "online_game", "single_player_game"]
+    ? ["movie", "tv", "anime", "variety", "documentary", "music"]
     : [ct];
   const catsMap: Record<string, string[]> = {
     anime: ["popular", "score", "new"],
-    mobile_game: ["popular", "top", "new"],
-    online_game: ["popular", "top", "new"],
-    single_player_game: ["popular", "top", "new"],
   };
   const all: NormalizedContent[] = [];
   for (const t of types) {

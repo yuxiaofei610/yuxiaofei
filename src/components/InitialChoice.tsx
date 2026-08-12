@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { INITIAL_GENRES, INITIAL_GAME_GENRES } from "@/lib/genreMap";
+import { INITIAL_GENRES } from "@/lib/genreMap";
 import { CONTENT_TYPE_LABELS, CONTENT_TYPES } from "@/lib/types";
 import { showToast } from "./toast";
 
@@ -27,7 +27,6 @@ export default function InitialChoice() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [genres, setGenres] = useState<Set<string>>(new Set(INITIAL_GENRES.slice(0, 3)));
-  const [gameGenres, setGameGenres] = useState<Set<string>>(new Set(INITIAL_GAME_GENRES.slice(0, 2)));
   const [types, setTypes] = useState<Set<string>>(new Set(["movie", "anime"]));
   const [countries, setCountries] = useState<Set<string>>(new Set(["中国", "日本", "美国"]));
 
@@ -44,10 +43,9 @@ export default function InitialChoice() {
     const res = await fetch("/api/user", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+        body: JSON.stringify({
         action: "init",
         genres: [...genres],
-        gameGenres: [...gameGenres],
         types: [...types],
         countries: [...countries],
       }),
@@ -70,7 +68,6 @@ export default function InitialChoice() {
         <p className="mt-1 text-sm text-muted">选择你的兴趣，初始化个性化推荐（可随时在「我的偏好」调整）。</p>
         <div className="mt-4 space-y-4">
           <CheckGroup title="影视类型" options={INITIAL_GENRES} selected={genres} toggle={toggle(setGenres)} />
-          <CheckGroup title="游戏类型" options={INITIAL_GAME_GENRES} selected={gameGenres} toggle={toggle(setGameGenres)} />
           <CheckGroup title="内容类型" options={CONTENT_TYPES.map((t) => CONTENT_TYPE_LABELS[t])} selected={new Set([...types].map((t) => CONTENT_TYPE_LABELS[t as keyof typeof CONTENT_TYPE_LABELS]))} toggle={(label) => { const key = CONTENT_TYPES.find((t) => CONTENT_TYPE_LABELS[t] === label); if (key) toggle(setTypes)(key); }} />
           <CheckGroup title="国家/地区" options={COUNTRIES} selected={countries} toggle={toggle(setCountries)} />
         </div>

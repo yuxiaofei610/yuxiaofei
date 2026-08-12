@@ -143,6 +143,7 @@ function mapVideo(s: any, ct: ContentType): NormalizedContent {
     title: subj.title || "未知",
     originalTitle: subj.original_title || null,
     description: subj.intro || subj.summary || null,
+    director: subj.directors?.[0]?.name || subj.author?.[0]?.name || null,
     coverImage: pickCover(subj),
     releaseDate: subj.year ? String(subj.year) : subj.release_date || null,
     rating: rating && rating > 0 ? rating : null,
@@ -157,6 +158,36 @@ function mapVideo(s: any, ct: ContentType): NormalizedContent {
     artist: null,
     album: null,
   };
+}
+
+// 列表项通常没有简介/导演，按条目补一次详情以充实卡片（豆瓣详情含 intro、directors）。
+// 带超时与容错：单条失败不影响整体，结果由调用方缓存。
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    p,
+    new Promise<T>((_, rej) => setTimeout(() => rej(new Error("timeout")), ms)),
+  ]);
+}
+
+async function enrichOne(c: NormalizedContent): Promise<NormalizedContent> {
+  const num = c.externalId || (c.id.includes(":") ? c.id.slice(c.id.lastIndexOf(":") + 1) : c.id);
+  if (!num) return c;
+  try {
+    const s = await withTimeout(doubanGet(`/subject/${num}`), 2500);
+    const subj = s.subject || s;
+    if (subj.intro || subj.summary) c.description = subj.intro || subj.summary || c.description;
+    const dir = subj.directors?.[0]?.name || subj.author?.[0]?.name || null;
+    if (dir) c.director = dir;
+    if (!c.originalTitle && subj.original_title) c.originalTitle = subj.original_title;
+    if (!c.releaseDate && subj.year) c.releaseDate = String(subj.year);
+  } catch {
+    /* 单条补详情失败：保留列表数据 */
+  }
+  return c;
+}
+
+async function enrichVideoItems(items: NormalizedContent[]): Promise<NormalizedContent[]> {
+  return Promise.all(items.map((it) => enrichOne(it).catch(() => it)));
 }
 
 const VIDEO_COLLECTION: Record<string, Record<string, string>> = {
@@ -177,8 +208,9 @@ export async function fetchVideoList(ct: ContentType, category: string, page = 1
   const arr = data && data.subject_collection_items ? data.subject_collection_items : [];
   const items = arr.map((s: any) => mapVideo(s, ct));
   if (items.length === 0) throw new Error("empty");
-  cacheSet(cacheKey, items, TTL.hot);
-  return items;
+  const enriched = await enrichVideoItems(items);
+  cacheSet(cacheKey, enriched, TTL.hot);
+  return enriched;
 }
 
 export async function fetchVideoDetail(id: string, ct: ContentType): Promise<NormalizedContent | null> {

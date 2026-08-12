@@ -74,6 +74,9 @@ export interface NormalizedContent {
   externalId?: string | null;
   source: string;
   isMock: boolean;
+  // 展示增强字段
+  director?: string | null;        // 导演 / 主创
+  imdbRating?: number | null;      // IMDb 评分（0-10），来自 OMDb
   // 专属字段
   artist?: string | null;
   album?: string | null;

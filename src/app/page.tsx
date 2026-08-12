@@ -13,7 +13,7 @@ export default function HomePage() {
             发现你下一个<span className="text-brand"> 最爱 </span>
           </h1>
           <p className="mt-2 text-sm text-muted md:text-base">
-            电影 · 电视剧 · 动漫 · 综艺 · 纪录片 · 音乐 · 手游 · 网游 · 单机。标记已看已玩，喜欢或不喜欢，推荐系统学习你的口味。
+            电影 · 电视剧 · 动漫 · 综艺 · 纪录片 · 音乐。标记已看已听，喜欢或不喜欢，推荐系统学习你的口味。
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             <a href="https://tophub.today/" target="_blank" rel="noopener noreferrer" className="btn btn-brand">
@@ -45,10 +45,6 @@ export default function HomePage() {
       <ContentRow title="热门综艺" type="variety" category="popular" subtitle="豆瓣 / TMDB 中文" />
       <ContentRow title="热门纪录片" type="documentary" category="popular" subtitle="TMDB 中文" />
       <ContentRow title="热门音乐" type="music" category="popular" subtitle="QQ音乐 / iTunes" />
-
-      <ContentRow title="热门手游" type="mobile_game" category="popular" />
-      <ContentRow title="热门网游" type="online_game" category="popular" />
-      <ContentRow title="热门单机游戏" type="single_player_game" category="popular" />
 
       <ContentRow title="猜你喜欢" type="all" mode="recommend" source="guess" count={20} subtitle="换一批发现更多" />
     </div>

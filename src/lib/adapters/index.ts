@@ -6,6 +6,10 @@ import { fetchRawgList, fetchRawgSearch, fetchRawgDetail, RawgNoKeyError } from 
 import { fetchItunesList, fetchItunesSearch, fetchItunesDetail } from "./itunes";
 import { fetchMusicList, fetchMusicSearch, fetchMusicDetail, fetchVideoList, fetchVideoDetail } from "./douban";
 import { fetchMusicList as fetchQqList, fetchMusicSearch as fetchQqSearch, fetchMusicDetail as fetchQqDetail } from "./qqmusic";
+import { attachImdbRatings } from "./imdb";
+
+// 影视类（电影/电视剧/综艺/纪录片）附加 IMDb 双评分。
+const VIDEO_TYPES = new Set<ContentType>(["movie", "tv", "variety", "documentary"]);
 import { mockList, mockSearch, mockDetail } from "./mock";
 
 function rawgGenreSlug(category: string): string | undefined {
@@ -91,6 +95,11 @@ export async function listContent(
     result = mockList(ct, category, page, perPage);
   }
 
+  // 影视类附加 IMDb 双评分（需 OMDB_API_KEY；无 key 时 attachImdbRatings 内部直接跳过）。
+  if (VIDEO_TYPES.has(ct) && process.env.OMDB_API_KEY) {
+    await attachImdbRatings(result);
+  }
+
   cacheSet(cacheKey, result, TTL.hot);
   return result;
 }
@@ -163,6 +172,10 @@ export async function getDetail(ct: ContentType, id: string): Promise<Normalized
     }
   } catch {
     result = mockDetail(id);
+  }
+
+  if (result && VIDEO_TYPES.has(ct) && process.env.OMDB_API_KEY) {
+    await attachImdbRatings([result]);
   }
 
   cacheSet(cacheKey, result, TTL.detail);

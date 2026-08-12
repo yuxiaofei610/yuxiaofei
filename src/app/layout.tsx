@@ -5,12 +5,12 @@ import Footer from "@/components/Footer";
 import { ToastHost } from "@/components/toast";
 
 export const metadata: Metadata = {
-  title: "悦荐 · 综合娱乐与游戏推荐",
-  description: "发现电影、电视剧、动漫、综艺、纪录片、音乐，以及手游、网游、单机游戏，个性化推荐，标记已看已玩，建立你的兴趣画像。",
-  keywords: ["影视推荐", "游戏推荐", "动漫", "电影", "个性化推荐", "Bilibili", "QQ音乐"],
+  title: "悦荐 · 综合娱乐推荐",
+  description: "发现电影、电视剧、动漫、综艺、纪录片、音乐，个性化推荐，标记已看已听，建立你的兴趣画像。",
+  keywords: ["影视推荐", "动漫", "电影", "个性化推荐", "Bilibili", "QQ音乐"],
   openGraph: {
-    title: "悦荐 · 综合娱乐与游戏推荐",
-    description: "个性化娱乐与游戏推荐平台",
+    title: "悦荐 · 综合娱乐推荐",
+    description: "个性化娱乐推荐平台",
     type: "website",
   },
   robots: { index: true, follow: true },
