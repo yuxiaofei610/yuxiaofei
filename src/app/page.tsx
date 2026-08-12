@@ -25,9 +25,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 为你推荐（个性化，混合全类型） */}
-      <ContentRow title="为你推荐" type="all" mode="recommend" source="homepage" count={20} subtitle="基于你的兴趣画像混合推荐" />
-
       {/* 今日热榜外部入口 */}
       <section className="my-4 rounded-xl border border-line bg-bg-card p-4">
         <div className="flex items-center justify-between">
@@ -45,8 +42,6 @@ export default function HomePage() {
       <ContentRow title="热门综艺" type="variety" category="popular" subtitle="豆瓣 / TMDB 中文" />
       <ContentRow title="热门纪录片" type="documentary" category="popular" subtitle="TMDB 中文" />
       <ContentRow title="热门音乐" type="music" category="popular" subtitle="QQ音乐 / iTunes" />
-
-      <ContentRow title="猜你喜欢" type="all" mode="recommend" source="guess" count={20} subtitle="换一批发现更多" />
     </div>
   );
 }

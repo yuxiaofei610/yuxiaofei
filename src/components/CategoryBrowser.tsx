@@ -8,7 +8,7 @@ import { showToast } from "./toast";
 
 export default function CategoryBrowser({ type, title }: { type: ContentType; title: string }) {
   const cats = CATEGORIES[type];
-  const [active, setActive] = useState<string>("__recommend__"); // 默认「根据我的口味推荐」
+  const [active, setActive] = useState<string>(cats[0]?.key ?? "popular");
   const [items, setItems] = useState<NormalizedContent[]>([]);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -17,12 +17,7 @@ export default function CategoryBrowser({ type, title }: { type: ContentType; ti
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      let url: string;
-      if (active === "__recommend__") {
-        url = `/api/recommend?type=${type}&source=${type}_rec&page=${page}&count=24`;
-      } else {
-        url = `/api/content?type=${type}&category=${encodeURIComponent(active)}&page=${page}`;
-      }
+      const url = `/api/content?type=${type}&category=${encodeURIComponent(active)}&page=${page}`;
       const res = await fetch(url);
       const data = await res.json();
       setItems(Array.isArray(data.items) ? data.items : []);
@@ -40,7 +35,7 @@ export default function CategoryBrowser({ type, title }: { type: ContentType; ti
 
   const refresh = () => { setPage((p) => p + 1); };
 
-  const tabs = [{ key: "__recommend__", label: "根据我的口味推荐" }, ...cats];
+  const tabs = cats;
 
   return (
     <div className="pt-2">
