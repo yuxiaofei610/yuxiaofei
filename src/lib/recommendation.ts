@@ -135,12 +135,18 @@ async function fetchCandidates(ct: ContentType | "all", page: number): Promise<N
   const types: ContentType[] = ct === "all"
     ? ["movie", "tv", "anime", "variety", "documentary", "music"]
     : [ct];
+  // 推荐流并发大容易超时：每种类型只取一个分类，anime 用 score 保证质量。
   const catsMap: Record<string, string[]> = {
-    anime: ["popular", "score", "new"],
+    anime: ["popular"],
+    movie: ["popular"],
+    tv: ["popular"],
+    variety: ["popular"],
+    documentary: ["popular"],
+    music: ["popular"],
   };
   const all: NormalizedContent[] = [];
   for (const t of types) {
-    const cats = catsMap[t] ?? ["popular", "top", "new"];
+    const cats = catsMap[t] ?? ["popular"];
     // 影视类直接走豆瓣列表（不 enrich），推荐流并发大，补详情会超时。
     const fetcher = VIDEO_TYPES.has(t)
       ? (c: string) => fetchVideoList(t, c, page).catch(() => [] as NormalizedContent[])

@@ -33,9 +33,23 @@ export default function ContentRow({ title, type, mode = "content", category = "
   const load = useCallback(
     async (p: number) => {
       setLoading(true);
+      const url = buildUrl(p);
+      const tryFetch = async () => {
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), 15000);
+        const res = await fetch(url, { signal: ctrl.signal });
+        clearTimeout(t);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      };
       try {
-        const res = await fetch(buildUrl(p));
-        const data = await res.json();
+        // 首次失败自动重试一次（Vercel Hobby 冷启动可能超时）
+        let data;
+        try {
+          data = await tryFetch();
+        } catch {
+          data = await tryFetch();
+        }
         if (Array.isArray(data.items)) {
           setItems(data.items);
           setIsMock(!!data.isMock);

@@ -6,26 +6,35 @@ import { cacheGet, cacheSet, TTL } from "../cache";
 // 因此音乐/影视在 index.ts 中保留多阶回退。
 const REXXAR = "https://m.douban.com/rexxar/api/v2";
 
+function isDoubanImageUrl(url: string): boolean {
+  return /https?:\/\/img\d+\.doubanio\.com/i.test(url);
+}
+
+function proxyImageUrl(url: string): string {
+  if (isDoubanImageUrl(url)) {
+    return `/api/proxy-image?url=${encodeURIComponent(url)}`;
+  }
+  return url;
+}
+
 // 豆瓣接口里封面字段非常不统一：列表页是 cover.url / pic.normal，详情页是 cover.image.normal.url / pic.normal 等。
 function pickCover(s: any): string | null {
   if (!s) return null;
+  let raw: string | null = null;
   if (s.cover && typeof s.cover === "object") {
-    if (typeof s.cover.url === "string") return s.cover.url;
-    if (s.cover.image && typeof s.cover.image === "object") {
-      return s.cover.image.normal?.url || s.cover.image.large?.url || s.cover.image.small?.url || null;
-    }
+    raw = s.cover.url || s.cover.image?.normal?.url || s.cover.image?.large?.url || s.cover.image?.small?.url || null;
   }
-  if (typeof s.cover_url === "string" && s.cover_url) return s.cover_url;
-  if (typeof s.cover === "string" && s.cover) return s.cover;
-  if (s.pic && typeof s.pic === "object") {
-    return s.pic.normal || s.pic.large || s.pic.small || null;
+  if (!raw && typeof s.cover_url === "string" && s.cover_url) raw = s.cover_url;
+  if (!raw && typeof s.cover === "string" && s.cover) raw = s.cover;
+  if (!raw && s.pic && typeof s.pic === "object") {
+    raw = s.pic.normal || s.pic.large || s.pic.small || null;
   }
-  if (s.image && typeof s.image === "object") {
-    return s.image.normal?.url || s.image.large?.url || s.image.small?.url || s.image.url || null;
+  if (!raw && s.image && typeof s.image === "object") {
+    raw = s.image.normal?.url || s.image.large?.url || s.image.small?.url || s.image.url || null;
   }
-  if (typeof s.image === "string" && s.image) return s.image;
-  if (Array.isArray(s.photos) && s.photos.length > 0 && typeof s.photos[0] === "string") return s.photos[0];
-  return null;
+  if (!raw && typeof s.image === "string" && s.image) raw = s.image;
+  if (!raw && Array.isArray(s.photos) && s.photos.length > 0 && typeof s.photos[0] === "string") raw = s.photos[0];
+  return raw ? proxyImageUrl(raw) : null;
 }
 
 // 列表页通常没有 genres 数组，可从 card_subtitle / info 里拆出来。

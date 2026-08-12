@@ -34,6 +34,7 @@ function mapSubject(s: any, ct: ContentType = "anime"): NormalizedContent {
   const title = s.name_cn || s.name || `动漫 ${s.id}`;
   const original = s.name && s.name !== title ? s.name : null;
   const cover = s.images?.common || s.images?.large || s.images?.medium || null;
+  const safeCover = typeof cover === "string" ? cover.replace(/^http:/, "https:") : cover;
   const rating = s.rating?.score != null ? Math.round(s.rating.score * 10) / 10 : null;
   const tags = (s.tags || []).slice(0, 6).map((t: any) => t.name);
   return {
@@ -42,7 +43,7 @@ function mapSubject(s: any, ct: ContentType = "anime"): NormalizedContent {
     title,
     originalTitle: original,
     description: stripHtml(s.summary),
-    coverImage: cover,
+    coverImage: safeCover,
     releaseDate: s.air_date || s.date || null,
     rating,
     popularity: s.collection?.doing ?? s.rating?.total ?? null,
