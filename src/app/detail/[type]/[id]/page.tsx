@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getDetail } from "@/lib/adapters";
-import { buildExternalLinks, TOPHUB_LINK } from "@/lib/external";
+import { buildExternalLinks } from "@/lib/external";
 import { CONTENT_TYPES, CONTENT_TYPE_LABELS, ContentType } from "@/lib/types";
 import DetailActions from "@/components/DetailActions";
 import ContentRow from "@/components/ContentRow";
@@ -91,7 +91,7 @@ export default async function DetailPage({ params }: { params: { type: string; i
           <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-white/80">{content.description || "（暂无简介）"}</p>
 
           <div className="mt-5">
-            <DetailActions content={content} external={[...external, TOPHUB_LINK]} />
+            <DetailActions content={content} external={external} />
           </div>
         </div>
       </div>
