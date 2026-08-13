@@ -247,6 +247,11 @@ export async function getDetail(
     if (fallback.rating != null && result.rating == null) result.rating = fallback.rating;
     if (fallback.releaseDate && !result.releaseDate) result.releaseDate = fallback.releaseDate;
     if (fallback.genres?.length && !result.genres.length) result.genres = fallback.genres;
+    if (fallback.description && !result.description) result.description = fallback.description;
+    // 清除 MOCK 兜底文案，避免弹窗把“无法还原详情”显示成剧情梗概。
+    if (result.description && result.description.includes("无法还原详情")) {
+      result.description = fallback?.description || null;
+    }
     // 兜底数据不再标记为 MOCK，避免前端把它当成无意义数据丢弃。
     if (result.isMock && (result.coverImage || result.rating != null)) result.isMock = false;
   }

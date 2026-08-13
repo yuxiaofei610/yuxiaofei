@@ -60,6 +60,7 @@ export default function DetailModalView({ content, onClose }: { content: Normali
     if (content.releaseDate) params.set("releaseDate", content.releaseDate);
     if (content.rating != null) params.set("rating", String(content.rating));
     if (content.genres?.length) params.set("genres", content.genres.join(","));
+    if (content.description) params.set("description", content.description);
     fetch(`/api/detail?${params.toString()}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {

@@ -19,6 +19,7 @@ export async function GET(req: NextRequest) {
       releaseDate: sp.get("releaseDate") || undefined,
       rating: sp.get("rating") ? parseFloat(sp.get("rating")!) : undefined,
       genres: sp.get("genres")?.split(",").filter(Boolean) || undefined,
+      description: sp.get("description") || undefined,
     };
     const content = await getDetail(type, id, fallback);
     if (!content) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
