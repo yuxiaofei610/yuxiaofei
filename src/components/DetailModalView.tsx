@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { NormalizedContent, CONTENT_TYPE_LABELS } from "@/lib/types";
-import { buildExternalLinks } from "@/lib/external";
+import { buildExternalLinks, ExternalResourceLink } from "@/lib/external";
 import CopyButton from "./CopyButton";
 import CoverImage from "./CoverImage";
 import { useBehavior } from "./useBehavior";
@@ -19,10 +19,59 @@ const RES_LABEL: Record<string, string> = {
   official: "官网",
 };
 
+function mergeDetail(base: NormalizedContent, detail?: NormalizedContent | null): NormalizedContent {
+  if (!detail) return base;
+  return {
+    ...detail,
+    id: base.id,
+    contentType: base.contentType,
+    // 列表页通常已有更及时的封面/评分，详情接口缺这些字段时回退到列表数据
+    coverImage: detail.coverImage ?? base.coverImage,
+    rating: detail.rating ?? base.rating,
+    imdbRating: detail.imdbRating ?? base.imdbRating,
+    // 数组类字段：详情接口有则覆盖，否则保留列表数据
+    genres: detail.genres?.length ? detail.genres : base.genres,
+    tags: detail.tags?.length ? detail.tags : base.tags,
+    recommendReasons: detail.recommendReasons?.length ? detail.recommendReasons : base.recommendReasons,
+  };
+}
+
 export default function DetailModalView({ content, onClose }: { content: NormalizedContent; onClose?: () => void }) {
   const { act } = useBehavior();
-  const isGame = content.contentType === "mobile_game" || content.contentType === "online_game" || content.contentType === "single_player_game";
-  const watchLabel = content.contentType === "music" ? "已听" : isGame ? "已玩" : "已看";
+
+  const [fullContent, setFullContent] = useState<NormalizedContent>(content);
+  const [external, setExternal] = useState<ExternalResourceLink[]>(() =>
+    buildExternalLinks(content).filter((e) => RES_ORDER.includes(e.resourceType))
+  );
+  const [loadingDetail, setLoadingDetail] = useState(true);
+
+  // 弹窗打开后异步补全详情（列表数据通常没有 description / director / recommendReasons）
+  useEffect(() => {
+    let cancelled = false;
+    setLoadingDetail(true);
+    fetch(`/api/detail?type=${encodeURIComponent(content.contentType)}&id=${encodeURIComponent(content.id)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (cancelled || !data?.content) return;
+        setFullContent((prev) => mergeDetail(prev, data.content));
+        if (data.external) {
+          setExternal(data.external.filter((e: ExternalResourceLink) => RES_ORDER.includes(e.resourceType)));
+        }
+      })
+      .catch(() => {
+        // 详情接口失败仍可用列表数据继续展示
+      })
+      .finally(() => setLoadingDetail(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [content.contentType, content.id]);
+
+  const isGame =
+    fullContent.contentType === "mobile_game" ||
+    fullContent.contentType === "online_game" ||
+    fullContent.contentType === "single_player_game";
+  const watchLabel = fullContent.contentType === "music" ? "已听" : isGame ? "已玩" : "已看";
   const watchAction = isGame ? "played" : "watched";
 
   const [watched, setWatched] = useState(false);
@@ -31,41 +80,58 @@ export default function DetailModalView({ content, onClose }: { content: Normali
 
   useEffect(() => {
     Promise.all([
-      fetch(`/api/behavior?list=${isGame ? "played" : "watched"}`).then((r) => r.json()).catch(() => ({ items: [] })),
-      fetch("/api/behavior?list=likes").then((r) => r.json()).catch(() => ({ items: [] })),
-      fetch("/api/behavior?list=dislikes").then((r) => r.json()).catch(() => ({ items: [] })),
+      fetch(`/api/behavior?list=${isGame ? "played" : "watched"}`)
+        .then((r) => r.json())
+        .catch(() => ({ items: [] })),
+      fetch("/api/behavior?list=likes")
+        .then((r) => r.json())
+        .catch(() => ({ items: [] })),
+      fetch("/api/behavior?list=dislikes")
+        .then((r) => r.json())
+        .catch(() => ({ items: [] })),
     ]).then(([w, l, d]) => {
       const wIds = (w.items || []).map((x: NormalizedContent) => x.id);
       const lIds = (l.items || []).map((x: NormalizedContent) => x.id);
       const dIds = (d.items || []).map((x: NormalizedContent) => x.id);
-      if (wIds.includes(content.id)) setWatched(true);
-      if (lIds.includes(content.id)) setLiked(true);
-      if (dIds.includes(content.id)) setDisliked(true);
+      if (wIds.includes(fullContent.id)) setWatched(true);
+      if (lIds.includes(fullContent.id)) setLiked(true);
+      if (dIds.includes(fullContent.id)) setDisliked(true);
     });
-  }, [content.id, isGame]);
+  }, [fullContent.id, isGame]);
 
   const toggleWatch = async () => {
-    const r = await act(content.contentType, content.id, watchAction as any);
-    if (r) { setWatched(r.added); showToast(r.added ? `已记录${watchLabel}` : `已取消${watchLabel}`, "success"); }
+    const r = await act(fullContent.contentType, fullContent.id, watchAction as any);
+    if (r) {
+      setWatched(r.added);
+      showToast(r.added ? `已记录${watchLabel}` : `已取消${watchLabel}`, "success");
+    }
   };
   const toggleLike = async () => {
-    const r = await act(content.contentType, content.id, "like");
-    if (r) { setLiked(r.added); if (r.added) setDisliked(false); showToast(r.added ? "已喜欢" : "已取消喜欢", "success"); }
+    const r = await act(fullContent.contentType, fullContent.id, "like");
+    if (r) {
+      setLiked(r.added);
+      if (r.added) setDisliked(false);
+      showToast(r.added ? "已喜欢" : "已取消喜欢", "success");
+    }
   };
   const toggleDislike = async () => {
-    const r = await act(content.contentType, content.id, "dislike");
-    if (r) { setDisliked(r.added); if (r.added) setLiked(false); showToast(r.added ? "已标记不喜欢" : "已取消", "success"); }
+    const r = await act(fullContent.contentType, fullContent.id, "dislike");
+    if (r) {
+      setDisliked(r.added);
+      if (r.added) setLiked(false);
+      showToast(r.added ? "已标记不喜欢" : "已取消", "success");
+    }
   };
 
-  const external = buildExternalLinks(content).filter((e) => RES_ORDER.includes(e.resourceType));
-  const reasons = content.recommendReasons || [];
-  const highlights = reasons.length > 0 ? reasons : content.genres;
-  const whyWatch =
-    reasons.length > 0
-      ? reasons[0]
-      : content.description
-      ? content.description.slice(0, 80) + (content.description.length > 80 ? "…" : "")
-      : "这部作品值得一看。";
+  const reasons = fullContent.recommendReasons || [];
+  const highlights = reasons.length > 0 ? reasons : fullContent.genres;
+  const whyWatch = useMemo(() => {
+    if (reasons.length > 0) return reasons[0];
+    if (fullContent.description) {
+      return fullContent.description.slice(0, 80) + (fullContent.description.length > 80 ? "…" : "");
+    }
+    return "这部作品值得一看。";
+  }, [reasons, fullContent.description]);
 
   return (
     <div className="card relative overflow-hidden rounded-2xl">
@@ -92,29 +158,31 @@ export default function DetailModalView({ content, onClose }: { content: Normali
         {/* 头部：封面 + 标题/元信息 */}
         <div className="flex gap-4">
           <div className="relative h-[168px] w-[112px] shrink-0 overflow-hidden rounded-lg bg-bg-soft ring-1 ring-white/10">
-            <CoverImage c={content} />
-            {content.isMock && (
-              <span className="absolute left-1 top-1 rounded bg-yellow-500/90 px-1.5 py-0.5 text-[10px] font-bold text-black">MOCK</span>
+            <CoverImage c={fullContent} />
+            {fullContent.isMock && (
+              <span className="absolute left-1 top-1 rounded bg-yellow-500/90 px-1.5 py-0.5 text-[10px] font-bold text-black">
+                MOCK
+              </span>
             )}
           </div>
           <div className="min-w-0 flex-1 pr-8">
-            <h1 className="text-2xl font-black leading-tight md:text-3xl">{content.title}</h1>
-            {content.originalTitle && content.originalTitle !== content.title && (
-              <p className="mt-1 text-sm text-muted">{content.originalTitle}</p>
+            <h1 className="text-2xl font-black leading-tight md:text-3xl">{fullContent.title}</h1>
+            {fullContent.originalTitle && fullContent.originalTitle !== fullContent.title && (
+              <p className="mt-1 text-sm text-muted">{fullContent.originalTitle}</p>
             )}
             <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
-              {content.releaseDate && <span>📅 {content.releaseDate}</span>}
-              {content.rating != null && <span className="text-yellow-400">⭐ 豆瓣 {content.rating.toFixed(1)}</span>}
-              {content.imdbRating != null && <span className="text-sky-400">IMDb {content.imdbRating.toFixed(1)}</span>}
-              <span className="chip">{CONTENT_TYPE_LABELS[content.contentType]}</span>
-              {content.director && <span>导演 · {content.director}</span>}
+              {fullContent.releaseDate && <span>📅 {fullContent.releaseDate}</span>}
+              {fullContent.rating != null && <span className="text-yellow-400">⭐ 豆瓣 {fullContent.rating.toFixed(1)}</span>}
+              {fullContent.imdbRating != null && <span className="text-sky-400">IMDb {fullContent.imdbRating.toFixed(1)}</span>}
+              <span className="chip">{CONTENT_TYPE_LABELS[fullContent.contentType]}</span>
+              {fullContent.director && <span>导演 · {fullContent.director}</span>}
             </div>
           </div>
         </div>
 
-        {content.genres.length > 0 && (
+        {fullContent.genres.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-2">
-            {content.genres.map((g) => (
+            {fullContent.genres.map((g) => (
               <span key={g} className="chip">
                 {g}
               </span>
@@ -125,7 +193,13 @@ export default function DetailModalView({ content, onClose }: { content: Normali
         {/* 剧情梗概 */}
         <section className="mt-5">
           <h2 className="mb-1.5 text-sm font-bold text-white">剧情梗概</h2>
-          <p className="whitespace-pre-line text-sm leading-relaxed text-white/80">{content.description || "（暂无简介）"}</p>
+          {loadingDetail && !fullContent.description ? (
+            <p className="text-sm text-muted">正在加载详情…</p>
+          ) : (
+            <p className="whitespace-pre-line text-sm leading-relaxed text-white/80">
+              {fullContent.description || "（暂无简介）"}
+            </p>
+          )}
         </section>
 
         {/* 亮点 */}
@@ -154,7 +228,7 @@ export default function DetailModalView({ content, onClose }: { content: Normali
           <section className="mt-4">
             <h2 className="mb-1.5 text-sm font-bold text-white">资源搜索</h2>
             <div className="flex flex-wrap gap-2">
-              <CopyButton text={content.title} className="btn btn-outline text-[12px]" />
+              <CopyButton text={fullContent.title} className="btn btn-outline text-[12px]" />
               {external.map((e) => (
                 <a
                   key={e.resourceType + e.url}
@@ -179,7 +253,10 @@ export default function DetailModalView({ content, onClose }: { content: Normali
           <button onClick={toggleLike} className={`btn flex-1 ${liked ? "btn-brand" : "btn-outline"}`}>
             {liked ? "已喜欢" : "喜欢"}
           </button>
-          <button onClick={toggleDislike} className={`btn flex-1 ${disliked ? "bg-red-500/80 text-white" : "btn-outline"}`}>
+          <button
+            onClick={toggleDislike}
+            className={`btn flex-1 ${disliked ? "bg-red-500/80 text-white" : "btn-outline"}`}
+          >
             {disliked ? "已不喜欢" : "不喜欢"}
           </button>
         </div>
