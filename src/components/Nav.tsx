@@ -13,7 +13,6 @@ const TOP_LINKS = [
   { href: "/documentary", label: "纪录片" },
   { href: "/music", label: "音乐" },
   { href: "/game", label: "游戏" },
-  { href: "/", label: "热榜" },
 ];
 
 export default function Nav() {
@@ -104,11 +103,10 @@ export default function Nav() {
       </header>
 
       {/* 移动端底部导航 */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 grid grid-cols-4 border-t border-line bg-bg/95 backdrop-blur md:hidden">
+      <nav className="fixed bottom-0 left-0 right-0 z-40 grid grid-cols-3 border-t border-line bg-bg/95 backdrop-blur md:hidden">
         {[
           { href: "/", label: "首页" },
           { href: "/movie", label: "分类" },
-          { href: "/", label: "热榜" },
           { href: "/me", label: "我的" },
         ].map((i) => (
           <Link
