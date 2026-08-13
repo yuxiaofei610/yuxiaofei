@@ -68,7 +68,6 @@ export default function Nav() {
               </Link>
             ))}
             <Link href="/watched" className={`btn btn-brand whitespace-nowrap text-xs ${isActive("/watched") ? "ring-2 ring-white/40" : ""}`}>已看</Link>
-            <Link href="/preferences" className={`btn btn-brand whitespace-nowrap text-xs ${isActive("/preferences") ? "ring-2 ring-white/40" : ""}`}>我的偏好</Link>
           </nav>
 
           <div className="ml-auto flex items-center gap-2">
@@ -93,8 +92,8 @@ export default function Nav() {
       </header>
 
       {/* 移动端底部导航 */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 grid grid-cols-5 border-t border-line bg-bg/95 backdrop-blur md:hidden">
-        {[{ href: "/", label: "首页" }, { href: "/movie", label: "分类" }, { href: "/search", label: "搜索" }, { href: "/watched", label: "已看" }, { href: "/preferences", label: "我的" }].map((i) => (
+      <nav className="fixed bottom-0 left-0 right-0 z-40 grid grid-cols-4 border-t border-line bg-bg/95 backdrop-blur md:hidden">
+        {[{ href: "/", label: "首页" }, { href: "/movie", label: "分类" }, { href: "/search", label: "搜索" }, { href: "/watched", label: "已看" }].map((i) => (
           <Link key={i.href} href={i.href} className={`flex flex-col items-center gap-0.5 py-2 text-[11px] ${isActive(i.href) ? "text-brand" : "text-muted"}`}>
             {i.label}
           </Link>
