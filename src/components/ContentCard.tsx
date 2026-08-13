@@ -7,8 +7,12 @@ import { useBehavior } from "./useBehavior";
 import { showToast } from "./toast";
 import { useDetailModal } from "./DetailModalProvider";
 import CoverImage from "./CoverImage";
+import MusicCard from "./MusicCard";
 
 export default function ContentCard({ c, onAction }: { c: NormalizedContent; onAction?: () => void }) {
+  // 音乐使用专属卡片（方形专辑封面 + 歌手/专辑信息）
+  if (c.contentType === "music") return <MusicCard c={c} onAction={onAction} />;
+
   const { act } = useBehavior();
   const { open } = useDetailModal();
   const detailHref = `/detail/${c.contentType}/${encodeURIComponent(c.id)}`;
@@ -18,7 +22,7 @@ export default function ContentCard({ c, onAction }: { c: NormalizedContent; onA
     open(c);
   };
   const isGame = c.contentType === "mobile_game" || c.contentType === "online_game" || c.contentType === "single_player_game";
-  const watchLabel = c.contentType === "music" ? "已听" : isGame ? "已玩" : "已看";
+  const watchLabel = isGame ? "已玩" : "已看";
   const watchAction = isGame ? "played" : "watched";
 
   const [watched, setWatched] = useState(false);
