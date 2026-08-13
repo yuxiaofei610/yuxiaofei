@@ -18,7 +18,7 @@ const RES_ICON: Record<string, string> = {
 
 function decodeOriginalCover(proxyUrl: string): string | null {
   try {
-    const u = new URL(proxyUrl, typeof window !== "undefined" ? window.location.href : "https://yuxiaofei.vercel.app");
+    const u = new URL(proxyUrl, "http://localhost");
     return u.searchParams.get("url");
   } catch {
     return null;

@@ -5,7 +5,7 @@ import { NormalizedContent } from "@/lib/types";
 
 function decodeOriginalCover(proxyUrl: string): string | null {
   try {
-    const u = new URL(proxyUrl, typeof window !== "undefined" ? window.location.href : "https://yuxiaofei.vercel.app");
+    const u = new URL(proxyUrl, "http://localhost");
     const raw = u.searchParams.get("url");
     return raw || null;
   } catch {
