@@ -21,21 +21,6 @@ export default async function HomePage() {
     <div>
       <InitialChoice />
 
-      {/* Hero / 今日推荐 */}
-      <section className="relative mt-2 overflow-hidden rounded-2xl border border-line bg-gradient-to-br from-bg-card via-bg-soft to-bg p-6 md:p-10">
-        <div className="max-w-2xl">
-          <h1 className="text-2xl font-black tracking-tight md:text-4xl">
-            发现你下一个<span className="text-brand"> 最爱 </span>
-          </h1>
-          <p className="mt-2 text-sm text-muted md:text-base">
-            电影 · 电视剧 · 动漫 · 综艺 · 纪录片 · 音乐。标记已看已听，喜欢或不喜欢，推荐系统学习你的口味。
-          </p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <a href="/preferences" className="btn btn-outline">我的偏好</a>
-          </div>
-        </div>
-      </section>
-
       {HOME_ROWS.map((r, i) => (
         <ContentRow
           key={r.type}
