@@ -219,6 +219,14 @@ export default function DetailModalView({ content, onClose }: { content: Normali
             <h2 className="mb-1.5 text-xs font-bold uppercase tracking-wide text-white/60">资源搜索</h2>
             <div className="flex flex-wrap gap-2">
               <CopyButton text={fullContent.title} className="btn btn-outline text-[11px]" />
+              <a
+                href="https://www.lvsc168.com/index.php"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-brand text-[11px]"
+              >
+                在线播放 ↗
+              </a>
               {external.map((e) => (
                 <a
                   key={e.resourceType + e.url}
