@@ -19,26 +19,32 @@ export default async function HotPage() {
         <h1 className="text-2xl font-black tracking-tight md:text-3xl">
           🔥 今日热榜
         </h1>
-        <p className="mt-1 text-sm text-muted">聚合豆瓣、Bangumi、QQ音乐、RAWG 与哔哩哔哩的实时热度，一键发现当下最值得看的内容。</p>
+        <p className="mt-1 text-sm text-muted">一站式发现当下最值得看的内容，包含外部热点入口与站内实时榜单。</p>
       </header>
 
-      <section className="mb-8 grid gap-4 sm:grid-cols-3">
-        {EXTERNAL_LINKS.map((e) => (
-          <a
-            key={e.url}
-            href={e.url}
-            target="_blank"
-            rel="noreferrer"
-            className="card flex flex-col gap-1 rounded-2xl border border-line bg-bg-card p-4 transition hover:border-brand"
-          >
-            <span className="text-2xl">{e.icon}</span>
-            <span className="font-bold">{e.title}</span>
-            <span className="text-xs text-muted">{e.desc}</span>
-          </a>
-        ))}
+      <section className="mb-10">
+        <h2 className="mb-3 text-lg font-bold">外部热榜聚合</h2>
+        <div className="grid gap-4 sm:grid-cols-3">
+          {EXTERNAL_LINKS.map((e) => (
+            <a
+              key={e.url}
+              href={e.url}
+              target="_blank"
+              rel="noreferrer"
+              className="card flex flex-col gap-1 rounded-2xl border border-line bg-bg-card p-4 transition hover:border-brand"
+            >
+              <span className="text-2xl">{e.icon}</span>
+              <span className="font-bold">{e.title}</span>
+              <span className="text-xs text-muted">{e.desc}</span>
+            </a>
+          ))}
+        </div>
       </section>
 
-      <HotBoardList boards={boards} />
+      <section>
+        <h2 className="mb-4 text-lg font-bold">站内实时榜单</h2>
+        <HotBoardList boards={boards} />
+      </section>
 
       <div className="mt-8 text-center">
         <Link href="/" className="btn btn-ghost text-sm">
