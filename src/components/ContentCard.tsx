@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, type MouseEvent } from "react";
 import { NormalizedContent, CONTENT_TYPE_LABELS } from "@/lib/types";
 import { buildExternalLinks } from "@/lib/external";
 import CopyButton from "./CopyButton";
 import { useBehavior } from "./useBehavior";
 import { showToast } from "./toast";
+import { useDetailModal } from "./DetailModalProvider";
 
 const RES_ICON: Record<string, string> = {
   bilibili: "Bilibili",
@@ -68,6 +69,13 @@ function Cover({ c }: { c: NormalizedContent }) {
 
 export default function ContentCard({ c, onAction }: { c: NormalizedContent; onAction?: () => void }) {
   const { act } = useBehavior();
+  const { open } = useDetailModal();
+  const detailHref = `/detail/${c.contentType}/${encodeURIComponent(c.id)}`;
+  // 保留 href 供爬虫/直链使用，但点击时改为弹窗展示
+  const openDetail = (e: MouseEvent) => {
+    e.preventDefault();
+    open(c);
+  };
   const isGame = c.contentType === "mobile_game" || c.contentType === "online_game" || c.contentType === "single_player_game";
   const watchLabel = c.contentType === "music" ? "已听" : isGame ? "已玩" : "已看";
   const watchAction = isGame ? "played" : "watched";
@@ -98,7 +106,7 @@ export default function ContentCard({ c, onAction }: { c: NormalizedContent; onA
 
   return (
     <div className="card group flex w-[160px] shrink-0 flex-col sm:w-[180px]">
-      <Link href={`/detail/${c.contentType}/${encodeURIComponent(c.id)}`} className="relative block aspect-[2/3] w-full overflow-hidden">
+      <Link href={detailHref} onClick={openDetail} className="relative block aspect-[2/3] w-full overflow-hidden">
         <Cover c={c} />
         {c.isMock && (
           <span className="absolute left-1 top-1 rounded bg-yellow-500/90 px-1.5 py-0.5 text-[10px] font-bold text-black">MOCK</span>
@@ -114,7 +122,7 @@ export default function ContentCard({ c, onAction }: { c: NormalizedContent; onA
       </Link>
 
       <div className="flex flex-1 flex-col gap-1 p-2.5">
-        <Link href={`/detail/${c.contentType}/${encodeURIComponent(c.id)}`} className="line-clamp-1 text-sm font-semibold hover:text-brand" title={c.title}>
+        <Link href={detailHref} onClick={openDetail} className="line-clamp-1 text-sm font-semibold hover:text-brand" title={c.title}>
           {c.title}
         </Link>
 
@@ -156,7 +164,7 @@ export default function ContentCard({ c, onAction }: { c: NormalizedContent; onA
 
         <div className="mt-auto flex flex-col gap-1 pt-1">
           <div className="flex gap-1">
-            <Link href={`/detail/${c.contentType}/${encodeURIComponent(c.id)}`} className="btn btn-ghost flex-1">详情</Link>
+            <button onClick={openDetail} className="btn btn-ghost flex-1">详情</button>
             <button onClick={toggleWatch} className={`btn flex-1 ${watched ? "btn-brand" : "btn-outline"}`}>{watchLabel}</button>
           </div>
           <div className="flex gap-1">

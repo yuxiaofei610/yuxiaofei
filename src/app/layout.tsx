@@ -3,6 +3,7 @@ import "./globals.css";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
 import { ToastHost } from "@/components/toast";
+import DetailModalProvider from "@/components/DetailModalProvider";
 
 export const metadata: Metadata = {
   title: "悦荐 · 综合娱乐推荐",
@@ -20,10 +21,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="zh-CN">
       <body className="min-h-screen bg-bg text-white/90 font-sans antialiased">
-        <Nav />
-        <main className="mx-auto w-full max-w-[1280px] px-4 pb-24 md:pb-10 pt-2">{children}</main>
-        <Footer />
-        <ToastHost />
+        <DetailModalProvider>
+          <Nav />
+          <main className="mx-auto w-full max-w-[1280px] px-4 pb-24 md:pb-10 pt-2">{children}</main>
+          <Footer />
+          <ToastHost />
+        </DetailModalProvider>
       </body>
     </html>
   );
