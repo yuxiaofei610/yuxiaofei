@@ -180,8 +180,11 @@ export async function getDetail(
   fallback?: Partial<NormalizedContent>
 ): Promise<NormalizedContent | null> {
   const cacheKey = "detail:v2:" + ct + ":" + id;
-  const hit = cacheGet<NormalizedContent | null>(cacheKey);
-  if (hit !== undefined) return hit;
+  // fallback 是每次请求不同的列表上下文，不能进全局缓存，否则同一 id 不同 fallback 会互相污染。
+  if (!fallback) {
+    const hit = cacheGet<NormalizedContent | null>(cacheKey);
+    if (hit !== undefined) return hit;
+  }
 
   let result: NormalizedContent | null = null;
   const source = id.includes(":") ? id.split(":")[0] : "douban";
@@ -249,8 +252,11 @@ export async function getDetail(
   }
 
   // 封面缺失 / mock 的结果只短缓存，避免错误封面被长期命中；正常结果缓存 6 小时。
-  const cacheable = !!result && !!result.coverImage && !result.isMock;
-  cacheSet(cacheKey, result, cacheable ? TTL.detail : 5 * 60 * 1000);
+  // 带 fallback 的请求结果不进缓存，防止不同列表上下文互相覆盖。
+  if (!fallback) {
+    const cacheable = !!result && !!result.coverImage && !result.isMock;
+    cacheSet(cacheKey, result, cacheable ? TTL.detail : 5 * 60 * 1000);
+  }
   return result;
 }
 
