@@ -59,7 +59,7 @@ export default function Nav() {
                 {l.label}
               </Link>
             ))}
-            <Link href="/anime" className="btn btn-outline whitespace-nowrap text-xs">
+            <Link href="/anime" className="btn btn-brand whitespace-nowrap text-xs">
               热门动漫
             </Link>
             {TOP_LINKS.slice(3).map((l) => (
