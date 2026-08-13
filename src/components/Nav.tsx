@@ -65,7 +65,7 @@ export default function Nav() {
                   href="/anime"
                   className="btn btn-outline whitespace-nowrap text-xs"
                 >
-                  热门动漫（真实数据）
+                  热门动漫
                 </Link>
               ) : null,
             ])}
