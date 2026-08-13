@@ -64,6 +64,14 @@ export default function Nav() {
                 className="w-40 rounded-lg border border-line bg-bg-soft px-3 py-1.5 text-sm outline-none focus:border-accent lg:w-56"
               />
             </form>
+            <a
+              href="https://tophub.today/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-brand hidden whitespace-nowrap text-xs md:inline-flex"
+            >
+              查看今日热榜 ↗
+            </a>
             {user ? (
               <div className="flex items-center gap-2">
                 <span className="hidden text-sm text-muted sm:inline">{user.username}</span>
