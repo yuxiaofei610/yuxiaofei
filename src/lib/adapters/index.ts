@@ -180,20 +180,31 @@ export async function getDetail(ct: ContentType, id: string): Promise<Normalized
   if (hit !== undefined) return hit;
 
   let result: NormalizedContent | null = null;
+  const source = id.includes(":") ? id.split(":")[0] : "douban";
   const ext = id.includes(":") ? id.slice(id.lastIndexOf(":") + 1) : id;
   try {
     if (ct === "anime") result = await fetchAnimeDetail(ext);
     else if (ct === "movie" || ct === "tv" || ct === "variety" || ct === "documentary") {
-      result = await fetchVideoDetail(ext, ct);
-      // 封面缺失才走补全链；不得在没有封面时把真实数据丢掉。
+      const tmdbType: "movie" | "tv" = ct === "tv" ? "tv" : "movie";
+      if (source === "tmdb") {
+        // TMDB 源（如 tmdb:movie:445877）：直接用 TMDB ID 查详情，不能当作豆瓣 ID。
+        result = await fetchTmdbDetail(tmdbType, ext);
+      } else {
+        // 豆瓣源或无明确前缀的历史数据：先走豆瓣详情。
+        result = await fetchVideoDetail(id, ct);
+      }
+
+      // 封面缺失 / 主源失败时走补全链。
       if (!result || !result.coverImage) {
-        const tmdbType: "movie" | "tv" = ct === "tv" ? "tv" : "movie";
-        // 1) 用豆瓣 id 反查 TMDB（不要用豆瓣 id 直接查 TMDB detail，id 不匹配必 404）
-        const viaDouban = await fetchTmdbDetailByDoubanId(ext, tmdbType).catch(() => null);
-        if (viaDouban && viaDouban.coverImage) {
-          result = viaDouban;
-        } else {
-          // 2) 用片名搜索补全（DeepSeek 增强可选）
+        if (source !== "tmdb") {
+          // 1) 豆瓣 ID 可反查 TMDB（不要用豆瓣 ID 直接查 TMDB detail，ID 不匹配必 404）。
+          const viaDouban = await fetchTmdbDetailByDoubanId(ext, tmdbType).catch(() => null);
+          if (viaDouban && viaDouban.coverImage) {
+            result = viaDouban;
+          }
+        }
+        // 2) 仍无结果/无封面，用片名在 TMDB 搜索补全（DeepSeek 增强可选）。
+        if (!result || !result.coverImage) {
           const title = result?.title || "";
           const fixed = await repairCover(title, result?.originalTitle || null, ct).catch(() => null);
           if (fixed) result = fixed;
