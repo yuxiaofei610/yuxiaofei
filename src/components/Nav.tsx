@@ -8,7 +8,6 @@ const TOP_LINKS = [
   { href: "/", label: "首页" },
   { href: "/movie", label: "电影" },
   { href: "/tv", label: "电视剧" },
-  { href: "/anime", label: "动漫" },
   { href: "/variety", label: "综艺" },
   { href: "/documentary", label: "纪录片" },
   { href: "/music", label: "音乐" },
@@ -55,20 +54,19 @@ export default function Nav() {
           </a>
 
           <nav className="hidden items-center gap-1 md:flex">
-            {TOP_LINKS.flatMap((l) => [
+            {TOP_LINKS.slice(0, 3).map((l) => (
               <Link key={l.href} href={l.href} className={`rounded-lg px-3 py-1.5 text-sm ${isActive(l.href) ? "text-white bg-bg-hover" : "text-muted hover:text-white"}`}>
                 {l.label}
-              </Link>,
-              l.href === "/anime" ? (
-                <Link
-                  key="hot-anime"
-                  href="/anime"
-                  className="btn btn-outline whitespace-nowrap text-xs"
-                >
-                  热门动漫
-                </Link>
-              ) : null,
-            ])}
+              </Link>
+            ))}
+            <Link href="/anime" className="btn btn-outline whitespace-nowrap text-xs">
+              热门动漫
+            </Link>
+            {TOP_LINKS.slice(3).map((l) => (
+              <Link key={l.href} href={l.href} className={`rounded-lg px-3 py-1.5 text-sm ${isActive(l.href) ? "text-white bg-bg-hover" : "text-muted hover:text-white"}`}>
+                {l.label}
+              </Link>
+            ))}
             <Link href="/watched" className={`rounded-lg px-3 py-1.5 text-sm ${isActive("/watched") ? "text-white bg-bg-hover" : "text-muted hover:text-white"}`}>已看</Link>
             <Link href="/preferences" className={`rounded-lg px-3 py-1.5 text-sm ${isActive("/preferences") ? "text-white bg-bg-hover" : "text-muted hover:text-white"}`}>我的偏好</Link>
           </nav>
