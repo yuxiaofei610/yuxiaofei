@@ -41,13 +41,6 @@ export default function Nav() {
     <>
       <header className="sticky top-0 z-40 border-b border-line bg-bg/90 backdrop-blur">
         <div className="mx-auto flex max-w-[1280px] items-center gap-3 px-4 py-3">
-          <Link
-            href="/anime"
-            className="btn btn-outline hidden whitespace-nowrap text-xs md:inline-flex"
-          >
-            热门动漫（真实数据）
-          </Link>
-
           <Link href="/" className="flex items-center gap-2 text-lg font-bold tracking-tight">
             <span className="text-brand">悦荐</span>
           </Link>
@@ -62,11 +55,20 @@ export default function Nav() {
           </a>
 
           <nav className="hidden items-center gap-1 md:flex">
-            {TOP_LINKS.map((l) => (
+            {TOP_LINKS.flatMap((l) => [
               <Link key={l.href} href={l.href} className={`rounded-lg px-3 py-1.5 text-sm ${isActive(l.href) ? "text-white bg-bg-hover" : "text-muted hover:text-white"}`}>
                 {l.label}
-              </Link>
-            ))}
+              </Link>,
+              l.href === "/anime" ? (
+                <Link
+                  key="hot-anime"
+                  href="/anime"
+                  className="btn btn-outline whitespace-nowrap text-xs"
+                >
+                  热门动漫（真实数据）
+                </Link>
+              ) : null,
+            ])}
             <Link href="/watched" className={`rounded-lg px-3 py-1.5 text-sm ${isActive("/watched") ? "text-white bg-bg-hover" : "text-muted hover:text-white"}`}>已看</Link>
             <Link href="/preferences" className={`rounded-lg px-3 py-1.5 text-sm ${isActive("/preferences") ? "text-white bg-bg-hover" : "text-muted hover:text-white"}`}>我的偏好</Link>
           </nav>
