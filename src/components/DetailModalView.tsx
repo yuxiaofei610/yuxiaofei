@@ -21,6 +21,8 @@ const RES_LABEL: Record<string, string> = {
 
 function mergeDetail(base: NormalizedContent, detail?: NormalizedContent | null): NormalizedContent {
   if (!detail) return base;
+  // 详情接口若只能返回 MOCK 兜底，保留列表页的真实数据，不要覆盖成“无法还原详情”
+  if (detail.isMock) return base;
   return {
     ...detail,
     id: base.id,
