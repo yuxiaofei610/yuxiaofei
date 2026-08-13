@@ -257,7 +257,7 @@ export default function DetailModalView({ content, onClose }: { content: Normali
         {/* 底部操作 */}
         <div className="mt-4 flex gap-2">
           <button onClick={toggleWatch} className={`btn flex-1 text-sm ${watched ? "btn-brand" : "btn-outline"}`}>
-            {watched ? `已${watchLabel}` : `标记${watchLabel}`}
+            {watched ? watchLabel : `标记${watchLabel}`}
           </button>
           <button onClick={toggleLike} className={`btn flex-1 text-sm ${liked ? "btn-brand" : "btn-outline"}`}>
             {liked ? "已喜欢" : "喜欢"}
