@@ -113,7 +113,7 @@ export async function searchContent(query: string, ct?: ContentType): Promise<No
 
   const types: ContentType[] = ct
     ? [ct]
-    : ["movie", "tv", "anime", "variety", "documentary", "music", "mobile_game", "online_game", "single_player_game"];
+    : ["movie", "tv", "anime", "variety", "documentary", "music"];
   const out: NormalizedContent[] = [];
 
   await Promise.all(
@@ -128,8 +128,6 @@ export async function searchContent(query: string, ct?: ContentType): Promise<No
           catch { try { items = await fetchMusicSearch(query); } catch { items = await fetchItunesSearch(query).catch(() => []); } }
         } else if (t === "movie") {
           try { items = await fetchTmdbSearch("movie", query); } catch (e) { if (e instanceof TmdbNoKeyError) items = mockSearch(t, query); }
-        } else if (t === "mobile_game" || t === "online_game" || t === "single_player_game") {
-          try { items = await fetchRawgSearch(query); } catch (e) { if (e instanceof RawgNoKeyError) items = mockSearch(t, query); }
         } else {
           items = mockSearch(t, query);
         }
