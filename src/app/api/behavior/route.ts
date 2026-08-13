@@ -37,14 +37,24 @@ export async function POST(req: NextRequest) {
   if (action === "dislike") await prisma.like.deleteMany({ where: { userId: user.id, contentId } }).catch(() => {});
 
   if (action === "watched" || action === "played") {
-    const model = isGame ? prisma.gamePlayHistory : prisma.watchHistory;
-    const exist = await model.findFirst({ where: { userId: user.id, contentId } });
-    if (exist) {
-      await model.delete({ where: { id: exist.id } });
-      await adjustFromBehavior(user.id, content, "watched");
+    if (isGame) {
+      const exist = await prisma.gamePlayHistory.findFirst({ where: { userId: user.id, contentId } });
+      if (exist) {
+        await prisma.gamePlayHistory.delete({ where: { id: exist.id } });
+        await adjustFromBehavior(user.id, content, "watched");
+      } else {
+        await prisma.gamePlayHistory.create({ data: { userId: user.id, contentId, contentType } });
+        added = true;
+      }
     } else {
-      await model.create({ data: { userId: user.id, contentId, contentType } });
-      added = true;
+      const exist = await prisma.watchHistory.findFirst({ where: { userId: user.id, contentId } });
+      if (exist) {
+        await prisma.watchHistory.delete({ where: { id: exist.id } });
+        await adjustFromBehavior(user.id, content, "watched");
+      } else {
+        await prisma.watchHistory.create({ data: { userId: user.id, contentId, contentType } });
+        added = true;
+      }
     }
   } else if (action === "like") {
     const exist = await prisma.like.findFirst({ where: { userId: user.id, contentId } });
