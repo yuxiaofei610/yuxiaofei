@@ -8,6 +8,7 @@ import CopyButton from "./CopyButton";
 import { useBehavior } from "./useBehavior";
 import { showToast } from "./toast";
 import { useDetailModal } from "./DetailModalProvider";
+import CoverImage from "./CoverImage";
 
 const RES_ICON: Record<string, string> = {
   bilibili: "Bilibili",
@@ -16,56 +17,6 @@ const RES_ICON: Record<string, string> = {
   qq_music: "QQ音乐",
   official: "官网",
 };
-
-function decodeOriginalCover(proxyUrl: string): string | null {
-  try {
-    const u = new URL(proxyUrl, "http://localhost");
-    return u.searchParams.get("url");
-  } catch {
-    return null;
-  }
-}
-
-function Cover({ c }: { c: NormalizedContent }) {
-  const [errProxy, setErrProxy] = useState(false);
-  const [errDirect, setErrDirect] = useState(false);
-  const directUrl = c.coverImage?.startsWith("/api/proxy-image") ? decodeOriginalCover(c.coverImage) : null;
-
-  if (!c.coverImage || (errProxy && (!directUrl || errDirect))) {
-    return (
-      <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-bg-hover to-bg-soft text-3xl font-black text-white/30">
-        {c.title.slice(0, 1)}
-      </div>
-    );
-  }
-
-  if (!errProxy) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return (
-      <img
-        src={c.coverImage}
-        alt={c.title}
-        loading="lazy"
-        referrerPolicy="no-referrer"
-        onError={() => setErrProxy(true)}
-        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-      />
-    );
-  }
-
-  // 代理失败时回退到原图
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={directUrl!}
-      alt={c.title}
-      loading="lazy"
-      referrerPolicy="no-referrer"
-      onError={() => setErrDirect(true)}
-      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-    />
-  );
-}
 
 export default function ContentCard({ c, onAction }: { c: NormalizedContent; onAction?: () => void }) {
   const { act } = useBehavior();
@@ -107,7 +58,7 @@ export default function ContentCard({ c, onAction }: { c: NormalizedContent; onA
   return (
     <div className="card group flex w-[160px] shrink-0 flex-col sm:w-[180px]">
       <Link href={detailHref} onClick={openDetail} className="relative block aspect-[2/3] w-full overflow-hidden">
-        <Cover c={c} />
+        <CoverImage c={c} className="transition-transform duration-500 group-hover:scale-105" />
         {c.isMock && (
           <span className="absolute left-1 top-1 rounded bg-yellow-500/90 px-1.5 py-0.5 text-[10px] font-bold text-black">MOCK</span>
         )}

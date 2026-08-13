@@ -5,6 +5,7 @@ import Link from "next/link";
 import { NormalizedContent, CONTENT_TYPE_LABELS } from "@/lib/types";
 import { buildExternalLinks } from "@/lib/external";
 import CopyButton from "./CopyButton";
+import CoverImage from "./CoverImage";
 import { useBehavior } from "./useBehavior";
 import { showToast } from "./toast";
 
@@ -88,21 +89,27 @@ export default function DetailModalView({ content, onClose }: { content: Normali
       )}
 
       <div className="p-5 sm:p-6">
-        {/* 标题区 */}
-        <div className="pr-8">
-          <h1 className="text-2xl font-black leading-tight md:text-3xl">{content.title}</h1>
-          {content.originalTitle && content.originalTitle !== content.title && (
-            <p className="mt-1 text-sm text-muted">{content.originalTitle}</p>
-          )}
-        </div>
-
-        {/* 元信息 */}
-        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
-          {content.releaseDate && <span>📅 {content.releaseDate}</span>}
-          {content.rating != null && <span className="text-yellow-400">⭐ 豆瓣 {content.rating.toFixed(1)}</span>}
-          {content.imdbRating != null && <span className="text-sky-400">IMDb {content.imdbRating.toFixed(1)}</span>}
-          <span className="chip">{CONTENT_TYPE_LABELS[content.contentType]}</span>
-          {content.director && <span>导演 · {content.director}</span>}
+        {/* 头部：封面 + 标题/元信息 */}
+        <div className="flex gap-4">
+          <div className="relative h-[168px] w-[112px] shrink-0 overflow-hidden rounded-lg bg-bg-soft ring-1 ring-white/10">
+            <CoverImage c={content} />
+            {content.isMock && (
+              <span className="absolute left-1 top-1 rounded bg-yellow-500/90 px-1.5 py-0.5 text-[10px] font-bold text-black">MOCK</span>
+            )}
+          </div>
+          <div className="min-w-0 flex-1 pr-8">
+            <h1 className="text-2xl font-black leading-tight md:text-3xl">{content.title}</h1>
+            {content.originalTitle && content.originalTitle !== content.title && (
+              <p className="mt-1 text-sm text-muted">{content.originalTitle}</p>
+            )}
+            <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
+              {content.releaseDate && <span>📅 {content.releaseDate}</span>}
+              {content.rating != null && <span className="text-yellow-400">⭐ 豆瓣 {content.rating.toFixed(1)}</span>}
+              {content.imdbRating != null && <span className="text-sky-400">IMDb {content.imdbRating.toFixed(1)}</span>}
+              <span className="chip">{CONTENT_TYPE_LABELS[content.contentType]}</span>
+              {content.director && <span>导演 · {content.director}</span>}
+            </div>
+          </div>
         </div>
 
         {content.genres.length > 0 && (
