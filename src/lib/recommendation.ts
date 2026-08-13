@@ -3,6 +3,7 @@ import { ContentType, NormalizedContent } from "./types";
 import { listContent } from "./adapters";
 import { fetchVideoList, fetchMusicList } from "./adapters/douban";
 import { mockList } from "./adapters/mock";
+import { deepseekEnabled, generateRecommendReasons } from "./adapters/deepseek";
 
 // 推荐引擎（独立模块，公式集中于此，前端不直接持有打分逻辑）
 //
@@ -120,6 +121,23 @@ function scoreAndReasons(c: NormalizedContent, p: Profile): Scored {
     recencyScore * 0.10 +
     diversityScore * 0.05;
   return { score, reasons };
+}
+
+// 把用户画像压成一句中文摘要，供 DeepSeek 生成个性化理由时使用
+function profileSummary(p: Profile): string {
+  if (!p.hasData) return "";
+  const top: string[] = [];
+  Object.entries(p.genres)
+    .filter(([, w]) => w > 0)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .forEach(([k]) => top.push(`类型「${k}」`));
+  Object.entries(p.tags)
+    .filter(([, w]) => w > 0)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .forEach(([k]) => top.push(`标签「${k}」`));
+  return top.join("、");
 }
 
 export interface RecommendResult {
@@ -295,6 +313,31 @@ export async function recommend(params: {
     cc.recommendReasons = x.reasons;
     return cc;
   });
+
+  // 可选增强：DeepSeek 个性化「为什么推荐」理由。
+  // 仅在配置了 key 且用户有画像时启用；任何失败/超时都保留规则引擎理由，不阻塞推荐。
+  if (deepseekEnabled() && profile.hasData) {
+    try {
+      const aiReq = picked.map((x) => ({
+        id: x.c.id,
+        title: x.c.title,
+        type: x.c.contentType,
+        genres: x.c.genres,
+        artist: x.c.artist,
+      }));
+      const aiReasons = await fetchWithTimeout(
+        () => generateRecommendReasons(aiReq, profileSummary(profile)),
+        6000
+      ).catch(() => null);
+      if (aiReasons) {
+        for (const cc of items) {
+          if (aiReasons[cc.id]) cc.recommendReasons = aiReasons[cc.id];
+        }
+      }
+    } catch {
+      // 保留规则理由
+    }
+  }
 
   // 记录推荐历史（用于去重 / 统计 / 优化）
   if (userId && items.length) {
