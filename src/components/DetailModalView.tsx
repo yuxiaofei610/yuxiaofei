@@ -51,7 +51,16 @@ export default function DetailModalView({ content, onClose }: { content: Normali
   useEffect(() => {
     let cancelled = false;
     setLoadingDetail(true);
-    fetch(`/api/detail?type=${encodeURIComponent(content.contentType)}&id=${encodeURIComponent(content.id)}`)
+    const params = new URLSearchParams();
+    params.set("type", content.contentType);
+    params.set("id", content.id);
+    if (content.title) params.set("title", content.title);
+    if (content.originalTitle) params.set("originalTitle", content.originalTitle);
+    if (content.coverImage) params.set("coverImage", content.coverImage);
+    if (content.releaseDate) params.set("releaseDate", content.releaseDate);
+    if (content.rating != null) params.set("rating", String(content.rating));
+    if (content.genres?.length) params.set("genres", content.genres.join(","));
+    fetch(`/api/detail?${params.toString()}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (cancelled || !data?.content) return;

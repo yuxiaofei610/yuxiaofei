@@ -12,7 +12,15 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "INVALID_PARAMS" }, { status: 400 });
   }
   try {
-    const content = await getDetail(type, id);
+    const fallback = {
+      title: sp.get("title") || undefined,
+      originalTitle: sp.get("originalTitle") || undefined,
+      coverImage: sp.get("coverImage") || undefined,
+      releaseDate: sp.get("releaseDate") || undefined,
+      rating: sp.get("rating") ? parseFloat(sp.get("rating")!) : undefined,
+      genres: sp.get("genres")?.split(",").filter(Boolean) || undefined,
+    };
+    const content = await getDetail(type, id, fallback);
     if (!content) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
     const external = buildExternalLinks(content);
     return NextResponse.json({ content, external, tophub: TOPHUB_LINK });

@@ -174,7 +174,11 @@ async function repairCover(
   }
 }
 
-export async function getDetail(ct: ContentType, id: string): Promise<NormalizedContent | null> {
+export async function getDetail(
+  ct: ContentType,
+  id: string,
+  fallback?: Partial<NormalizedContent>
+): Promise<NormalizedContent | null> {
   const cacheKey = "detail:v2:" + ct + ":" + id;
   const hit = cacheGet<NormalizedContent | null>(cacheKey);
   if (hit !== undefined) return hit;
@@ -205,8 +209,9 @@ export async function getDetail(ct: ContentType, id: string): Promise<Normalized
         }
         // 2) 仍无结果/无封面，用片名在 TMDB 搜索补全（DeepSeek 增强可选）。
         if (!result || !result.coverImage) {
-          const title = result?.title || "";
-          const fixed = await repairCover(title, result?.originalTitle || null, ct).catch(() => null);
+          const title = result?.title || fallback?.title || "";
+          const originalTitle = result?.originalTitle || fallback?.originalTitle || null;
+          const fixed = await repairCover(title, originalTitle, ct).catch(() => null);
           if (fixed) result = fixed;
           else if (!result) result = mockDetail(id);
         }
@@ -229,6 +234,18 @@ export async function getDetail(ct: ContentType, id: string): Promise<Normalized
 
   if (result && VIDEO_TYPES.has(ct) && process.env.OMDB_API_KEY) {
     await attachImdbRatings([result]);
+  }
+
+  // 若数据源只返回 MOCK 兜底，用列表页已知的真实字段覆盖，避免显示“无法还原详情”。
+  if (result && (result.isMock || !result.coverImage) && fallback) {
+    if (fallback.title && (!result.title || result.title === id)) result.title = fallback.title;
+    if (fallback.originalTitle && !result.originalTitle) result.originalTitle = fallback.originalTitle;
+    if (fallback.coverImage && !result.coverImage) result.coverImage = fallback.coverImage;
+    if (fallback.rating != null && result.rating == null) result.rating = fallback.rating;
+    if (fallback.releaseDate && !result.releaseDate) result.releaseDate = fallback.releaseDate;
+    if (fallback.genres?.length && !result.genres.length) result.genres = fallback.genres;
+    // 兜底数据不再标记为 MOCK，避免前端把它当成无意义数据丢弃。
+    if (result.isMock && (result.coverImage || result.rating != null)) result.isMock = false;
   }
 
   // 封面缺失 / mock 的结果只短缓存，避免错误封面被长期命中；正常结果缓存 6 小时。
