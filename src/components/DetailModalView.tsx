@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { NormalizedContent, CONTENT_TYPE_LABELS } from "@/lib/types";
 import { buildExternalLinks, ExternalResourceLink } from "@/lib/external";
@@ -125,13 +125,7 @@ export default function DetailModalView({ content, onClose }: { content: Normali
 
   const reasons = fullContent.recommendReasons || [];
   const highlights = reasons.length > 0 ? reasons : fullContent.genres;
-  const whyWatch = useMemo(() => {
-    if (reasons.length > 0) return reasons[0];
-    if (fullContent.description) {
-      return fullContent.description.slice(0, 80) + (fullContent.description.length > 80 ? "…" : "");
-    }
-    return "这部作品值得一看。";
-  }, [reasons, fullContent.description]);
+  // “为什么值得看”只展示真实的推荐理由，不再用剧情简介硬凑，避免重复
 
   return (
     <div className="card relative overflow-hidden rounded-2xl">
@@ -217,11 +211,13 @@ export default function DetailModalView({ content, onClose }: { content: Normali
           </section>
         )}
 
-        {/* 为什么值得看 */}
-        <section className="mt-4 rounded-xl border-l-2 border-brand bg-brand/5 px-3 py-2">
-          <h2 className="mb-1 text-sm font-bold text-white">为什么值得看</h2>
-          <p className="text-sm leading-relaxed text-white/85">{whyWatch}</p>
-        </section>
+        {/* 为什么值得看：仅在有真实推荐理由时显示，不再用剧情简介凑数 */}
+        {reasons.length > 0 && (
+          <section className="mt-4 rounded-xl border-l-2 border-brand bg-brand/5 px-3 py-2">
+            <h2 className="mb-1 text-sm font-bold text-white">为什么值得看</h2>
+            <p className="text-sm leading-relaxed text-white/85">{reasons[0]}</p>
+          </section>
+        )}
 
         {/* 资源搜索 */}
         {external.length > 0 && (
