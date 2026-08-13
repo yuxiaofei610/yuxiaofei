@@ -13,7 +13,7 @@ const TOP_LINKS = [
   { href: "/documentary", label: "纪录片" },
   { href: "/music", label: "音乐" },
   { href: "/game", label: "游戏" },
-  { href: "/hot", label: "热榜" },
+  { href: "/", label: "热榜" },
 ];
 
 export default function Nav() {
@@ -108,7 +108,7 @@ export default function Nav() {
         {[
           { href: "/", label: "首页" },
           { href: "/movie", label: "分类" },
-          { href: "/hot", label: "热榜" },
+          { href: "/", label: "热榜" },
           { href: "/me", label: "我的" },
         ].map((i) => (
           <Link
