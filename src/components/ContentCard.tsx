@@ -3,20 +3,10 @@
 import Link from "next/link";
 import { useState, type MouseEvent } from "react";
 import { NormalizedContent, CONTENT_TYPE_LABELS } from "@/lib/types";
-import { buildExternalLinks } from "@/lib/external";
-import CopyButton from "./CopyButton";
 import { useBehavior } from "./useBehavior";
 import { showToast } from "./toast";
 import { useDetailModal } from "./DetailModalProvider";
 import CoverImage from "./CoverImage";
-
-const RES_ICON: Record<string, string> = {
-  bilibili: "Bilibili",
-  cloud_drive: "网盘",
-  anime_resource: "动漫资源",
-  qq_music: "QQ音乐",
-  official: "官网",
-};
 
 export default function ContentCard({ c, onAction }: { c: NormalizedContent; onAction?: () => void }) {
   const { act } = useBehavior();
@@ -32,26 +22,13 @@ export default function ContentCard({ c, onAction }: { c: NormalizedContent; onA
   const watchAction = isGame ? "played" : "watched";
 
   const [watched, setWatched] = useState(false);
-  const [liked, setLiked] = useState(false);
-  const [disliked, setDisliked] = useState(false);
   const [expanded, setExpanded] = useState(false);
-
-  const external = buildExternalLinks(c);
 
   const toggleWatch = async () => {
     const r = await act(c.contentType, c.id, watchAction as any);
     if (r) { setWatched(r.added); showToast(r.added ? `已记录${watchLabel}` : `已取消${watchLabel}`, "success"); onAction?.(); }
   };
-  const toggleLike = async () => {
-    const r = await act(c.contentType, c.id, "like");
-    if (r) { setLiked(r.added); if (r.added) setDisliked(false); showToast(r.added ? "已喜欢" : "已取消喜欢", "success"); onAction?.(); }
-  };
-  const toggleDislike = async () => {
-    const r = await act(c.contentType, c.id, "dislike");
-    if (r) { setDisliked(r.added); if (r.added) setLiked(false); showToast(r.added ? "已标记不喜欢" : "已取消", "success"); onAction?.(); }
-  };
 
-  const meta = [c.releaseDate, CONTENT_TYPE_LABELS[c.contentType]].filter(Boolean).join(" · ");
   const primaryGenre = c.genres[0] || c.tags[0] || "";
   const showYear = c.releaseDate ? c.releaseDate.slice(0, 4) : "";
 
@@ -113,26 +90,9 @@ export default function ContentCard({ c, onAction }: { c: NormalizedContent; onA
           </div>
         )}
 
-        <div className="mt-auto flex flex-col gap-1 pt-1">
-          <div className="flex gap-1">
-            <button onClick={openDetail} className="btn btn-ghost flex-1">详情</button>
-            <button onClick={toggleWatch} className={`btn flex-1 ${watched ? "btn-brand" : "btn-outline"}`}>{watchLabel}</button>
-          </div>
-          <div className="flex gap-1">
-            <button onClick={toggleLike} className={`btn flex-1 ${liked ? "btn-brand" : "btn-outline"}`}>喜欢</button>
-            <button onClick={toggleDislike} className={`btn flex-1 ${disliked ? "bg-red-500/80 text-white" : "btn-outline"}`}>不喜欢</button>
-          </div>
-          <CopyButton text={c.title} className="btn btn-outline w-full" />
-
-          {external.length > 0 && (
-            <div className="flex flex-wrap gap-1 pt-0.5">
-              {external.map((e) => (
-                <a key={e.resourceType + e.url} href={e.url} target="_blank" rel="noopener noreferrer" className="btn btn-ghost text-[11px]">
-                  {RES_ICON[e.resourceType] || e.title}
-                </a>
-              ))}
-            </div>
-          )}
+        <div className="mt-auto flex gap-1 pt-1">
+          <button onClick={openDetail} className="btn btn-ghost flex-1">详情</button>
+          <button onClick={toggleWatch} className={`btn flex-1 ${watched ? "btn-brand" : "btn-outline"}`}>{watchLabel}</button>
         </div>
       </div>
     </div>
