@@ -1,2 +1,2 @@
-import CategoryBrowser from "@/components/CategoryBrowser";
-export default function Page() { return <CategoryBrowser type="movie" title="电影" />; }
+import CategoryPage from "@/components/CategoryPage";
+export default function Page() { return <CategoryPage type="movie" title="电影" />; }

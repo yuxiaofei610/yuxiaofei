@@ -13,13 +13,16 @@ interface Props {
   source?: string;            // recommend 模式下的推荐来源（用于去重）
   count?: number;
   subtitle?: string;
+  initialItems?: NormalizedContent[]; // SSR 首屏直出数据：有则首屏直接渲染，不再自动客户端拉取
+  initialIsMock?: boolean;
 }
 
-export default function ContentRow({ title, type, mode = "content", category = "popular", source = "homepage", count = 20, subtitle }: Props) {
-  const [items, setItems] = useState<NormalizedContent[]>([]);
+export default function ContentRow({ title, type, mode = "content", category = "popular", source = "homepage", count = 20, subtitle, initialItems, initialIsMock }: Props) {
+  const needsFetch = !initialItems || initialItems.length === 0;
+  const [items, setItems] = useState<NormalizedContent[]>(initialItems ?? []);
   const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(false);
-  const [isMock, setIsMock] = useState(false);
+  const [loading, setLoading] = useState<boolean>(needsFetch);
+  const [isMock, setIsMock] = useState<boolean>(initialIsMock ?? false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const buildUrl = useCallback(
@@ -66,7 +69,10 @@ export default function ContentRow({ title, type, mode = "content", category = "
     [buildUrl]
   );
 
-  useEffect(() => { load(1); }, [load]);
+  useEffect(() => {
+    // SSR 已直出首屏数据时不再自动拉取，避免覆盖；仅当无初始数据时才客户端拉取（兼容未传 initial 的用法）。
+    if (needsFetch) load(1);
+  }, [load, needsFetch]);
 
   const refresh = () => {
     const next = page + 1;

@@ -39,7 +39,8 @@ export async function listContent(
   ct: ContentType,
   category: string,
   page = 1,
-  perPage = 20
+  perPage = 20,
+  enrich = true
 ): Promise<NormalizedContent[]> {
   const cacheKey = "list:" + ct + ":" + category + ":" + page + ":" + perPage;
   const hit = cacheGet<NormalizedContent[]>(cacheKey);
@@ -51,7 +52,7 @@ export async function listContent(
       result = await fetchAnimeList(category, page, perPage);
     } else if (ct === "movie" || ct === "tv" || ct === "variety" || ct === "documentary") {
       try {
-        result = await fetchVideoList(ct, category, page, perPage, true);
+        result = await fetchVideoList(ct, category, page, perPage, enrich);
         if (result.length === 0) throw new Error("empty");
       } catch (e) {
         const tmdbCat = ct === "variety" ? "genre:10764" : ct === "documentary" ? "documentary" : category;
@@ -215,4 +216,21 @@ export async function getDetail(ct: ContentType, id: string): Promise<Normalized
   const cacheable = !!result && !!result.coverImage && !result.isMock;
   cacheSet(cacheKey, result, cacheable ? TTL.detail : 5 * 60 * 1000);
   return result;
+}
+
+// 服务端首屏预取：带超时降级，用于 SSR 直出。
+// 目的：让首页 / 分类页在 HTML 里直接带出内容，避免手机端依赖客户端 JS 拉接口导致白屏/长时间转圈。
+// - enrich=false：列表本身已含封面与评分，不逐条补详情，显著提速。
+// - 超时返回空数组：首屏该分类留空，但客户端「换一批」仍会补，不会卡死 SSR。
+export async function prefetchContent(
+  ct: ContentType,
+  category: string,
+  count = 20,
+  timeoutMs = 5000
+): Promise<{ items: NormalizedContent[]; isMock: boolean }> {
+  const p = listContent(ct, category, 1, count, false);
+  const timeout = new Promise<NormalizedContent[]>((resolve) => setTimeout(() => resolve([]), timeoutMs));
+  const items = await Promise.race([p, timeout]);
+  const isMock = items.length === 0 || items.every((i) => i.isMock);
+  return { items, isMock };
 }

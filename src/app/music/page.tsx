@@ -1,2 +1,2 @@
-import CategoryBrowser from "@/components/CategoryBrowser";
-export default function Page() { return <CategoryBrowser type="music" title="音乐" />; }
+import CategoryPage from "@/components/CategoryPage";
+export default function Page() { return <CategoryPage type="music" title="音乐" />; }

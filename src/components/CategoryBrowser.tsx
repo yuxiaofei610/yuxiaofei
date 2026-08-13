@@ -6,13 +6,27 @@ import { CATEGORIES } from "@/lib/categories";
 import ContentCard from "./ContentCard";
 import { showToast } from "./toast";
 
-export default function CategoryBrowser({ type, title }: { type: ContentType; title: string }) {
+export default function CategoryBrowser({
+  type,
+  title,
+  initialItems,
+  initialIsMock,
+  initialCategory,
+}: {
+  type: ContentType;
+  title: string;
+  initialItems?: NormalizedContent[];
+  initialIsMock?: boolean;
+  initialCategory?: string;
+}) {
   const cats = CATEGORIES[type];
-  const [active, setActive] = useState<string>(cats[0]?.key ?? "popular");
-  const [items, setItems] = useState<NormalizedContent[]>([]);
+  const defaultCat = initialCategory ?? cats[0]?.key ?? "popular";
+  const needsFetch = !initialItems || initialItems.length === 0;
+  const [active, setActive] = useState<string>(defaultCat);
+  const [items, setItems] = useState<NormalizedContent[]>(initialItems ?? []);
   const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(false);
-  const [isMock, setIsMock] = useState(false);
+  const [loading, setLoading] = useState<boolean>(needsFetch);
+  const [isMock, setIsMock] = useState<boolean>(initialIsMock ?? false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -31,7 +45,12 @@ export default function CategoryBrowser({ type, title }: { type: ContentType; ti
   }, [active, type, page]);
 
   useEffect(() => { setPage(1); }, [active]);
-  useEffect(() => { load(); }, [load]);
+  // 首屏：SSR 已直出默认 tab 数据时跳过自动拉取；切 tab 或换一批（active/page 变化）则正常拉取。
+  const skipFirst = !!initialItems?.length && active === defaultCat && page === 1;
+  useEffect(() => {
+    if (skipFirst) return;
+    load();
+  }, [load, skipFirst]);
 
   const refresh = () => { setPage((p) => p + 1); };
 
