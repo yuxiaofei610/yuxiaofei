@@ -89,6 +89,10 @@ export function CategorySection({
           ))}
         </div>
       )}
+
+      {!loading && items.length === 0 && (
+        <div className="py-8 text-center text-sm text-muted">暂无内容 · 豆瓣数据源暂不可用，请稍后重试</div>
+      )}
     </section>
   );
 }

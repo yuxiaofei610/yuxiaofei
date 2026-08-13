@@ -1,7 +1,7 @@
 import { ContentType, NormalizedContent } from "../types";
 import { cacheGet, cacheSet, TTL } from "../cache";
 import { fetchAnimeList, fetchAnimeSearch, fetchAnimeDetail } from "./bangumi";
-import { fetchTmdbList, fetchTmdbSearch, fetchTmdbDetail, fetchTmdbDetailByDoubanId, TmdbNoKeyError } from "./tmdb";
+import { fetchTmdbSearch, fetchTmdbDetail, fetchTmdbDetailByDoubanId, TmdbNoKeyError } from "./tmdb";
 import { fetchRawgList, fetchRawgSearch, fetchRawgDetail, RawgNoKeyError } from "./rawg";
 import { fetchItunesList, fetchItunesSearch, fetchItunesDetail } from "./itunes";
 import { fetchMusicList, fetchMusicSearch, fetchMusicDetail, fetchVideoList, fetchVideoDetail, enrichVideoItems } from "./douban";
@@ -60,18 +60,12 @@ export async function listContent(
     if (ct === "anime") {
       result = await fetchAnimeList(category, page, perPage);
     } else if (ct === "movie" || ct === "tv" || ct === "variety" || ct === "documentary") {
+      // 仅用豆瓣：按需求移除 TMDB 兜底，保证影视热门推荐内容全部来自豆瓣。
+      // 豆瓣失败/为空时返回空数组，由前端显示「暂无内容」，不再混入 TMDB 或 MOCK 数据。
       try {
         result = await fetchVideoList(ct, category, page, perPage, enrich);
-        if (result.length === 0) throw new Error("empty");
-      } catch (e) {
-        const tmdbCat = ct === "variety" ? "genre:10764" : ct === "documentary" ? "documentary" : category;
-        const tmdbType: "movie" | "tv" = ct === "tv" ? "tv" : "movie";
-        try {
-          result = await fetchTmdbList(tmdbType, tmdbCat, page);
-          if (result.length === 0) throw new Error("empty");
-        } catch {
-          result = mockList(ct, category, page, perPage);
-        }
+      } catch {
+        result = [];
       }
     } else if (ct === "music") {
       try {
