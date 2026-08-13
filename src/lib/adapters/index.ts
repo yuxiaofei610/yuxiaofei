@@ -175,7 +175,7 @@ async function repairCover(
 }
 
 export async function getDetail(ct: ContentType, id: string): Promise<NormalizedContent | null> {
-  const cacheKey = "detail:" + ct + ":" + id;
+  const cacheKey = "detail:v2:" + ct + ":" + id;
   const hit = cacheGet<NormalizedContent | null>(cacheKey);
   if (hit !== undefined) return hit;
 
