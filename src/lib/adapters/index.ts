@@ -40,9 +40,11 @@ export async function listContent(
   category: string,
   page = 1,
   perPage = 20,
-  enrich = true
+  enrich = true,
+  opts?: { minRating?: number; year?: string; sort?: "hot" | "rating" | "year" }
 ): Promise<NormalizedContent[]> {
-  const cacheKey = "list:" + ct + ":" + category + ":" + page + ":" + perPage;
+  const optKey = opts ? `|${opts.minRating ?? ""}|${opts.year ?? ""}|${opts.sort ?? ""}` : "";
+  const cacheKey = "list:" + ct + ":" + category + ":" + page + ":" + perPage + optKey;
   const hit = cacheGet<NormalizedContent[]>(cacheKey);
   if (hit) return hit;
 
@@ -100,6 +102,14 @@ export async function listContent(
   // 影视类附加 IMDb 双评分（需 OMDB_API_KEY；无 key 时 attachImdbRatings 内部直接跳过）。
   if (VIDEO_TYPES.has(ct) && process.env.OMDB_API_KEY) {
     await attachImdbRatings(result);
+  }
+
+  // 服务端筛选 + 排序（评分区间 / 年份 / 排序方式），外部 API 未必支持这些精确组合。
+  if (opts) {
+    if (opts.minRating != null) result = result.filter((i) => (i.rating ?? 0) >= opts.minRating!);
+    if (opts.year) result = result.filter((i) => !!i.releaseDate && i.releaseDate.startsWith(opts.year!));
+    if (opts.sort === "rating") result = [...result].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
+    else if (opts.sort === "year") result = [...result].sort((a, b) => (b.releaseDate || "").localeCompare(a.releaseDate || ""));
   }
 
   cacheSet(cacheKey, result, TTL.hot);
