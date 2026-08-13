@@ -31,7 +31,6 @@ export default async function HomePage() {
             电影 · 电视剧 · 动漫 · 综艺 · 纪录片 · 音乐。标记已看已听，喜欢或不喜欢，推荐系统学习你的口味。
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
-            <a href="/anime" className="btn btn-outline">热门动漫（真实数据）</a>
             <a href="/preferences" className="btn btn-outline">我的偏好</a>
           </div>
         </div>

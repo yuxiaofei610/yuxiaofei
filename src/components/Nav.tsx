@@ -41,6 +41,13 @@ export default function Nav() {
     <>
       <header className="sticky top-0 z-40 border-b border-line bg-bg/90 backdrop-blur">
         <div className="mx-auto flex max-w-[1280px] items-center gap-3 px-4 py-3">
+          <Link
+            href="/anime"
+            className="btn btn-outline hidden whitespace-nowrap text-xs md:inline-flex"
+          >
+            热门动漫（真实数据）
+          </Link>
+
           <Link href="/" className="flex items-center gap-2 text-lg font-bold tracking-tight">
             <span className="text-brand">悦荐</span>
           </Link>
