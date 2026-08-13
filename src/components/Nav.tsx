@@ -55,7 +55,7 @@ export default function Nav() {
 
           <nav className="hidden items-center gap-1 md:flex">
             {TOP_LINKS.slice(0, 3).map((l) => (
-              <Link key={l.href} href={l.href} className={`rounded-lg px-3 py-1.5 text-sm ${isActive(l.href) ? "text-white bg-bg-hover" : "text-muted hover:text-white"}`}>
+              <Link key={l.href} href={l.href} className={`btn btn-brand whitespace-nowrap text-xs ${isActive(l.href) ? "ring-2 ring-white/40" : ""}`}>
                 {l.label}
               </Link>
             ))}
@@ -63,12 +63,12 @@ export default function Nav() {
               热门动漫
             </Link>
             {TOP_LINKS.slice(3).map((l) => (
-              <Link key={l.href} href={l.href} className={`rounded-lg px-3 py-1.5 text-sm ${isActive(l.href) ? "text-white bg-bg-hover" : "text-muted hover:text-white"}`}>
+              <Link key={l.href} href={l.href} className={`btn btn-brand whitespace-nowrap text-xs ${isActive(l.href) ? "ring-2 ring-white/40" : ""}`}>
                 {l.label}
               </Link>
             ))}
-            <Link href="/watched" className={`rounded-lg px-3 py-1.5 text-sm ${isActive("/watched") ? "text-white bg-bg-hover" : "text-muted hover:text-white"}`}>已看</Link>
-            <Link href="/preferences" className={`rounded-lg px-3 py-1.5 text-sm ${isActive("/preferences") ? "text-white bg-bg-hover" : "text-muted hover:text-white"}`}>我的偏好</Link>
+            <Link href="/watched" className={`btn btn-brand whitespace-nowrap text-xs ${isActive("/watched") ? "ring-2 ring-white/40" : ""}`}>已看</Link>
+            <Link href="/preferences" className={`btn btn-brand whitespace-nowrap text-xs ${isActive("/preferences") ? "ring-2 ring-white/40" : ""}`}>我的偏好</Link>
           </nav>
 
           <div className="ml-auto flex items-center gap-2">
