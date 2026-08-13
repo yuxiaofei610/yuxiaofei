@@ -124,8 +124,7 @@ export default function DetailModalView({ content, onClose }: { content: Normali
   };
 
   const reasons = fullContent.recommendReasons || [];
-  const highlights = reasons.length > 0 ? reasons : fullContent.genres;
-  // “为什么值得看”只展示真实的推荐理由，不再用剧情简介硬凑，避免重复
+  const hasDescription = Boolean(fullContent.description);
 
   return (
     <div className="card relative overflow-hidden rounded-2xl">
@@ -134,7 +133,7 @@ export default function DetailModalView({ content, onClose }: { content: Normali
         <button
           onClick={onClose}
           aria-label="关闭"
-          className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white/80 transition hover:bg-black/60"
+          className="absolute right-2 top-2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-black/40 text-white/80 transition hover:bg-black/60"
         >
           ✕
         </button>
@@ -142,66 +141,62 @@ export default function DetailModalView({ content, onClose }: { content: Normali
         <Link
           href="/"
           aria-label="返回"
-          className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white/80 transition hover:bg-black/60"
+          className="absolute right-2 top-2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-black/40 text-white/80 transition hover:bg-black/60"
         >
           ✕
         </Link>
       )}
 
-      <div className="p-5 sm:p-6">
+      <div className="p-4 sm:p-5">
         {/* 头部：封面 + 标题/元信息 */}
-        <div className="flex gap-4">
-          <div className="relative h-[168px] w-[112px] shrink-0 overflow-hidden rounded-lg bg-bg-soft ring-1 ring-white/10">
+        <div className="flex gap-3">
+          <div className="relative h-[144px] w-[96px] shrink-0 overflow-hidden rounded-md bg-bg-soft ring-1 ring-white/10">
             <CoverImage c={fullContent} />
             {fullContent.isMock && (
-              <span className="absolute left-1 top-1 rounded bg-yellow-500/90 px-1.5 py-0.5 text-[10px] font-bold text-black">
+              <span className="absolute left-1 top-1 rounded bg-yellow-500/90 px-1 py-0.5 text-[9px] font-bold text-black">
                 MOCK
               </span>
             )}
           </div>
-          <div className="min-w-0 flex-1 pr-8">
-            <h1 className="text-2xl font-black leading-tight md:text-3xl">{fullContent.title}</h1>
+          <div className="min-w-0 flex-1 pr-7">
+            <h1 className="text-xl font-black leading-tight sm:text-2xl">{fullContent.title}</h1>
             {fullContent.originalTitle && fullContent.originalTitle !== fullContent.title && (
-              <p className="mt-1 text-sm text-muted">{fullContent.originalTitle}</p>
+              <p className="text-xs text-muted sm:text-sm">{fullContent.originalTitle}</p>
             )}
-            <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
-              {fullContent.releaseDate && <span>📅 {fullContent.releaseDate}</span>}
-              {fullContent.rating != null && <span className="text-yellow-400">⭐ 豆瓣 {fullContent.rating.toFixed(1)}</span>}
+            <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted sm:text-sm">
+              {fullContent.releaseDate && <span>{fullContent.releaseDate}</span>}
+              {fullContent.rating != null && <span className="text-yellow-400">⭐ {fullContent.rating.toFixed(1)}</span>}
               {fullContent.imdbRating != null && <span className="text-sky-400">IMDb {fullContent.imdbRating.toFixed(1)}</span>}
-              <span className="chip">{CONTENT_TYPE_LABELS[fullContent.contentType]}</span>
-              {fullContent.director && <span>导演 · {fullContent.director}</span>}
+              <span className="chip text-[10px] sm:text-xs">{CONTENT_TYPE_LABELS[fullContent.contentType]}</span>
+              {fullContent.director && <span className="truncate">{fullContent.director}</span>}
             </div>
+            {fullContent.genres.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {fullContent.genres.map((g) => (
+                  <span key={g} className="chip text-[10px] sm:text-xs">
+                    {g}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
-        {fullContent.genres.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-2">
-            {fullContent.genres.map((g) => (
-              <span key={g} className="chip">
-                {g}
-              </span>
-            ))}
-          </div>
-        )}
-
         {/* 剧情梗概 */}
-        <section className="mt-5">
-          <h2 className="mb-1.5 text-sm font-bold text-white">剧情梗概</h2>
-          {loadingDetail && !fullContent.description ? (
-            <p className="text-sm text-muted">正在加载详情…</p>
-          ) : (
-            <p className="whitespace-pre-line text-sm leading-relaxed text-white/80">
-              {fullContent.description || "（暂无简介）"}
-            </p>
-          )}
-        </section>
+        {loadingDetail ? (
+          <p className="mt-3 text-xs text-muted">正在加载详情…</p>
+        ) : hasDescription ? (
+          <section className="mt-3">
+            <p className="whitespace-pre-line text-sm leading-relaxed text-white/85">{fullContent.description}</p>
+          </section>
+        ) : null}
 
-        {/* 亮点 */}
-        {highlights.length > 0 && (
-          <section className="mt-4">
-            <h2 className="mb-1.5 text-sm font-bold text-white">亮点</h2>
-            <ul className="space-y-1">
-              {highlights.slice(0, 5).map((h, i) => (
+        {/* 亮点：仅在有真实推荐理由时显示，避免与题材标签重复 */}
+        {reasons.length > 0 && (
+          <section className="mt-3">
+            <h2 className="mb-1 text-xs font-bold uppercase tracking-wide text-white/60">亮点</h2>
+            <ul className="space-y-0.5">
+              {reasons.slice(0, 5).map((h, i) => (
                 <li key={i} className="flex gap-2 text-sm text-white/80">
                   <span className="text-brand">·</span>
                   <span>{h}</span>
@@ -211,47 +206,45 @@ export default function DetailModalView({ content, onClose }: { content: Normali
           </section>
         )}
 
-        {/* 为什么值得看：仅在有真实推荐理由时显示，不再用剧情简介凑数 */}
+        {/* 为什么值得看：仅在有真实推荐理由时显示 */}
         {reasons.length > 0 && (
-          <section className="mt-4 rounded-xl border-l-2 border-brand bg-brand/5 px-3 py-2">
-            <h2 className="mb-1 text-sm font-bold text-white">为什么值得看</h2>
+          <section className="mt-3 rounded-lg border-l-2 border-brand bg-brand/5 px-3 py-2">
             <p className="text-sm leading-relaxed text-white/85">{reasons[0]}</p>
           </section>
         )}
 
         {/* 资源搜索 */}
         {external.length > 0 && (
-          <section className="mt-4">
-            <h2 className="mb-1.5 text-sm font-bold text-white">资源搜索</h2>
+          <section className="mt-3">
+            <h2 className="mb-1.5 text-xs font-bold uppercase tracking-wide text-white/60">资源搜索</h2>
             <div className="flex flex-wrap gap-2">
-              <CopyButton text={fullContent.title} className="btn btn-outline text-[12px]" />
+              <CopyButton text={fullContent.title} className="btn btn-outline text-[11px]" />
               {external.map((e) => (
                 <a
                   key={e.resourceType + e.url}
                   href={e.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="btn btn-ghost text-[12px]"
+                  className="btn btn-ghost text-[11px]"
                 >
                   {RES_LABEL[e.resourceType] || e.title} ↗
                 </a>
               ))}
             </div>
-            <p className="mt-1 text-[11px] text-muted">第三方平台链接，按名称跳转搜索，不伪造具体资源。</p>
           </section>
         )}
 
         {/* 底部操作 */}
-        <div className="mt-5 flex gap-2">
-          <button onClick={toggleWatch} className={`btn flex-1 ${watched ? "btn-brand" : "btn-outline"}`}>
+        <div className="mt-4 flex gap-2">
+          <button onClick={toggleWatch} className={`btn flex-1 text-sm ${watched ? "btn-brand" : "btn-outline"}`}>
             {watched ? `已${watchLabel}` : `标记${watchLabel}`}
           </button>
-          <button onClick={toggleLike} className={`btn flex-1 ${liked ? "btn-brand" : "btn-outline"}`}>
+          <button onClick={toggleLike} className={`btn flex-1 text-sm ${liked ? "btn-brand" : "btn-outline"}`}>
             {liked ? "已喜欢" : "喜欢"}
           </button>
           <button
             onClick={toggleDislike}
-            className={`btn flex-1 ${disliked ? "bg-red-500/80 text-white" : "btn-outline"}`}
+            className={`btn flex-1 text-sm ${disliked ? "bg-red-500/80 text-white" : "btn-outline"}`}
           >
             {disliked ? "已不喜欢" : "不喜欢"}
           </button>

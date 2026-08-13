@@ -39,7 +39,7 @@ export default function DetailModalProvider({ children }: { children: ReactNode 
           className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/70 p-4 backdrop-blur-sm sm:items-center"
           onClick={close}
         >
-          <div className="my-8 w-full max-w-2xl" onClick={(e) => e.stopPropagation()}>
+          <div className="my-8 w-full max-w-xl" onClick={(e) => e.stopPropagation()}>
             <DetailModalView content={content} onClose={close} />
           </div>
         </div>
