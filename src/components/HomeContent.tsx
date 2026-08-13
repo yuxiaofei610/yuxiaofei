@@ -14,7 +14,7 @@ const MODES = [
 ];
 
 export function routeForType(type: ContentType): string {
-  if (type === "single_player_game") return "/game";
+  if (type === "single_player_game" || type === "online_game" || type === "mobile_game") return "/game";
   return `/${type}`;
 }
 
