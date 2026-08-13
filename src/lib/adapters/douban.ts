@@ -200,6 +200,11 @@ async function enrichOne(c: NormalizedContent): Promise<NormalizedContent> {
     if (dir) c.director = dir;
     if (!c.originalTitle && subj.original_title) c.originalTitle = subj.original_title;
     if (!c.releaseDate && subj.year) c.releaseDate = String(subj.year);
+    // 列表接口多数项 rating 为 null，详情接口才可靠带评分；不补则评分筛选不可用。
+    if (c.rating == null && subj.rating?.value != null) {
+      const r = Math.round(subj.rating.value * 10) / 10;
+      if (r > 0) c.rating = r;
+    }
   } catch {
     /* 单条补详情失败：保留列表数据 */
   }
