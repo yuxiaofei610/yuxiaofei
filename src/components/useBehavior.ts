@@ -7,11 +7,18 @@ import { showToast } from "./toast";
 export function useBehavior() {
   const router = useRouter();
 
-  async function act(contentType: string, contentId: string, action: "watched" | "played" | "like" | "dislike") {
+  async function act(
+    contentType: string,
+    contentId: string,
+    action: "watched" | "played" | "like" | "dislike" | "favorite" | "want_watch" | "rating",
+    rating?: number
+  ) {
+    const body: Record<string, unknown> = { contentType, contentId, action };
+    if (rating != null) body.rating = rating;
     const res = await fetch("/api/behavior", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ contentType, contentId, action }),
+      body: JSON.stringify(body),
     });
     const data = await res.json().catch(() => ({}));
     if (res.status === 401 || data.error === "NOT_LOGIN") {

@@ -87,27 +87,33 @@ export default function DetailModalView({ content, onClose }: { content: Normali
   const watchAction = isGame ? "played" : "watched";
 
   const [watched, setWatched] = useState(false);
-  const [liked, setLiked] = useState(false);
-  const [disliked, setDisliked] = useState(false);
+  const [wantWatch, setWantWatch] = useState(false);
+  const [favorited, setFavorited] = useState(false);
+  const [userRating, setUserRating] = useState<number | null>(null);
 
   useEffect(() => {
     Promise.all([
       fetch(`/api/behavior?list=${isGame ? "played" : "watched"}`)
         .then((r) => r.json())
         .catch(() => ({ items: [] })),
-      fetch("/api/behavior?list=likes")
+      fetch("/api/behavior?list=favorites")
         .then((r) => r.json())
         .catch(() => ({ items: [] })),
-      fetch("/api/behavior?list=dislikes")
+      fetch("/api/behavior?list=want_watch")
         .then((r) => r.json())
         .catch(() => ({ items: [] })),
-    ]).then(([w, l, d]) => {
+      fetch("/api/behavior?list=ratings")
+        .then((r) => r.json())
+        .catch(() => ({ items: [] })),
+    ]).then(([w, f, ww, rt]) => {
       const wIds = (w.items || []).map((x: NormalizedContent) => x.id);
-      const lIds = (l.items || []).map((x: NormalizedContent) => x.id);
-      const dIds = (d.items || []).map((x: NormalizedContent) => x.id);
+      const fIds = (f.items || []).map((x: NormalizedContent) => x.id);
+      const wwIds = (ww.items || []).map((x: NormalizedContent) => x.id);
+      const myRating = (rt.items || []).find((x: NormalizedContent & { userRating?: number }) => x.id === fullContent.id);
       if (wIds.includes(fullContent.id)) setWatched(true);
-      if (lIds.includes(fullContent.id)) setLiked(true);
-      if (dIds.includes(fullContent.id)) setDisliked(true);
+      if (fIds.includes(fullContent.id)) setFavorited(true);
+      if (wwIds.includes(fullContent.id)) setWantWatch(true);
+      if (myRating?.userRating != null) setUserRating(myRating.userRating);
     });
   }, [fullContent.id, isGame]);
 
@@ -118,20 +124,25 @@ export default function DetailModalView({ content, onClose }: { content: Normali
       showToast(r.added ? `已记录${watchLabel}` : `已取消${watchLabel}`, "success");
     }
   };
-  const toggleLike = async () => {
-    const r = await act(fullContent.contentType, fullContent.id, "like");
+  const toggleWantWatch = async () => {
+    const r = await act(fullContent.contentType, fullContent.id, "want_watch");
     if (r) {
-      setLiked(r.added);
-      if (r.added) setDisliked(false);
-      showToast(r.added ? "已喜欢" : "已取消喜欢", "success");
+      setWantWatch(r.added);
+      showToast(r.added ? "已加入想看" : "已移出想看", "success");
     }
   };
-  const toggleDislike = async () => {
-    const r = await act(fullContent.contentType, fullContent.id, "dislike");
+  const toggleFavorite = async () => {
+    const r = await act(fullContent.contentType, fullContent.id, "favorite");
     if (r) {
-      setDisliked(r.added);
-      if (r.added) setLiked(false);
-      showToast(r.added ? "已标记不喜欢" : "已取消", "success");
+      setFavorited(r.added);
+      showToast(r.added ? "已收藏" : "已取消收藏", "success");
+    }
+  };
+  const rate = async (n: number) => {
+    const r = await act(fullContent.contentType, fullContent.id, "rating", n);
+    if (r) {
+      setUserRating(n);
+      showToast(`已评分 ${n} 星`, "success");
     }
   };
 
@@ -259,15 +270,32 @@ export default function DetailModalView({ content, onClose }: { content: Normali
           <button onClick={toggleWatch} className={`btn flex-1 text-sm ${watched ? "btn-brand" : "btn-outline"}`}>
             {watched ? watchLabel : `标记${watchLabel}`}
           </button>
-          <button onClick={toggleLike} className={`btn flex-1 text-sm ${liked ? "btn-brand" : "btn-outline"}`}>
-            {liked ? "已喜欢" : "喜欢"}
+          <button onClick={toggleWantWatch} className={`btn flex-1 text-sm ${wantWatch ? "btn-brand" : "btn-outline"}`}>
+            {wantWatch ? "想看 ✓" : "想看"}
           </button>
-          <button
-            onClick={toggleDislike}
-            className={`btn flex-1 text-sm ${disliked ? "bg-red-500/80 text-white" : "btn-outline"}`}
-          >
-            {disliked ? "已不喜欢" : "不喜欢"}
+          <button onClick={toggleFavorite} className={`btn flex-1 text-sm ${favorited ? "btn-brand" : "btn-outline"}`}>
+            {favorited ? "已收藏" : "收藏"}
           </button>
+        </div>
+
+        {/* 我的评分 */}
+        <div className="mt-2 flex items-center gap-1">
+          <span className="text-xs text-muted">我的评分：</span>
+          {[1, 2, 3, 4, 5].map((n) => (
+            <button
+              key={n}
+              onClick={() => rate(n)}
+              aria-label={`${n} 星`}
+              className={`text-xl leading-none transition hover:scale-110 ${
+                userRating != null && n <= userRating ? "text-yellow-400" : "text-white/25"
+              }`}
+            >
+              ★
+            </button>
+          ))}
+          {userRating != null && (
+            <span className="ml-1 text-xs text-yellow-400">{userRating} 星</span>
+          )}
         </div>
       </div>
     </div>

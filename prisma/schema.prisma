@@ -125,6 +125,32 @@ model Dislike {
   @@index([userId])
 }
 
+// 想看清单（稍后看 / 收藏待看）
+model WantWatch {
+  id          String   @id @default(cuid())
+  userId      String
+  contentId   String
+  contentType String
+  createdAt   DateTime @default(now())
+
+  @@unique([userId, contentId])
+  @@index([userId])
+}
+
+// 用户个人评分（1-5 星）
+model UserRating {
+  id          String   @id @default(cuid())
+  userId      String
+  contentId   String
+  contentType String
+  rating      Int      // 1-5
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, contentId])
+  @@index([userId])
+}
+
 // 推荐历史：用于换一批去重、推荐优化、统计
 model RecommendationHistory {
   id        String   @id @default(cuid())
