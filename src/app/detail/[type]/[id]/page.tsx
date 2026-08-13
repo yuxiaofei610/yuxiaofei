@@ -38,7 +38,7 @@ export default async function DetailPage({ params }: { params: { type: string; i
     <div className="pt-2">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
-      <div className="flex min-h-[60vh] items-start justify-center py-6">
+      <div className="flex min-h-[70vh] items-center justify-center py-8">
         <div className="w-full max-w-xl">
           <DetailModalView content={content} />
         </div>
