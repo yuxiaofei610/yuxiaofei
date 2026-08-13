@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
     const items = await listContent(type, category, page, perPage, true, {
       minRating: minRatingRaw ? Number(minRatingRaw) : undefined,
       year: year || undefined,
-      sort: (sort as "hot" | "rating" | "year") || undefined,
+      sort: (sort as "hot" | "rating" | "year" | "random" | "niche") || undefined,
     });
     return NextResponse.json({ items, source: items[0]?.source ?? "unknown", isMock: items[0]?.isMock ?? false });
   } catch (e: any) {

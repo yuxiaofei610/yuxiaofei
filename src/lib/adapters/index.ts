@@ -13,6 +13,13 @@ import { translateToSearchQuery, deepseekEnabled } from "./deepseek";
 const VIDEO_TYPES = new Set<ContentType>(["movie", "tv", "variety", "documentary"]);
 import { mockList, mockSearch, mockDetail } from "./mock";
 
+function shuffleInPlace<T>(arr: T[]): void {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+}
+
 function rawgGenreSlug(category: string): string | undefined {
   const m: Record<string, string> = {
     "genre:rpg": "role-playing-games-rpg",
@@ -41,7 +48,7 @@ export async function listContent(
   page = 1,
   perPage = 20,
   enrich = true,
-  opts?: { minRating?: number; year?: string; sort?: "hot" | "rating" | "year" }
+  opts?: { minRating?: number; year?: string; sort?: "hot" | "rating" | "year" | "random" | "niche" }
 ): Promise<NormalizedContent[]> {
   const optKey = opts ? `|${opts.minRating ?? ""}|${opts.year ?? ""}|${opts.sort ?? ""}` : "";
   const cacheKey = "list:" + ct + ":" + category + ":" + page + ":" + perPage + optKey;
@@ -110,6 +117,16 @@ export async function listContent(
     if (opts.year) result = result.filter((i) => !!i.releaseDate && i.releaseDate.startsWith(opts.year!));
     if (opts.sort === "rating") result = [...result].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
     else if (opts.sort === "year") result = [...result].sort((a, b) => (b.releaseDate || "").localeCompare(a.releaseDate || ""));
+    else if (opts.sort === "random") shuffleInPlace(result);
+    else if (opts.sort === "niche") {
+      // 小众佳作：评分中上但非爆款（避开 9 分顶流），再打乱避免每次固定顺序。
+      const niche = result.filter((i) => {
+        const r = i.rating ?? 0;
+        return r >= 7 && r <= 8.6;
+      });
+      result = niche.length ? niche : result;
+      shuffleInPlace(result);
+    }
   }
 
   cacheSet(cacheKey, result, TTL.hot);
