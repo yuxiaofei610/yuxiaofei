@@ -8,9 +8,12 @@ const TOP_LINKS = [
   { href: "/", label: "首页" },
   { href: "/movie", label: "电影" },
   { href: "/tv", label: "电视剧" },
+  { href: "/anime", label: "动漫" },
   { href: "/variety", label: "综艺" },
   { href: "/documentary", label: "纪录片" },
   { href: "/music", label: "音乐" },
+  { href: "/game", label: "游戏" },
+  { href: "/hot", label: "热榜" },
 ];
 
 export default function Nav() {
@@ -34,40 +37,27 @@ export default function Nav() {
     router.refresh();
   };
 
-  const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
+  const isActive = (href: string) =>
+    href === "/" ? pathname === "/" : pathname.startsWith(href);
 
   return (
     <>
       <header className="sticky top-0 z-40 border-b border-line bg-bg/90 backdrop-blur">
-        <div className="mx-auto flex max-w-[1280px] items-center gap-3 px-4 py-3">
-          <Link href="/" className="flex items-center gap-2 text-lg font-bold tracking-tight">
+        <div className="mx-auto flex max-w-[1280px] items-center gap-3 px-4 py-2.5">
+          <Link href="/" className="flex shrink-0 items-center gap-2 text-lg font-bold tracking-tight">
             <span className="text-brand">悦荐</span>
           </Link>
 
-          <a
-            href="https://tophub.today/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn btn-brand hidden whitespace-nowrap text-xs md:inline-flex"
-          >
-            查看今日热榜 ↗
-          </a>
-
-          <nav className="hidden items-center gap-1 md:flex">
-            {TOP_LINKS.slice(0, 3).map((l) => (
-              <Link key={l.href} href={l.href} className={`btn btn-brand whitespace-nowrap text-xs ${isActive(l.href) ? "ring-2 ring-white/40" : ""}`}>
+          <nav className="hidden items-center gap-1 lg:flex">
+            {TOP_LINKS.map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                className={`btn whitespace-nowrap text-xs ${isActive(l.href) ? "btn-brand ring-2 ring-white/40" : "btn-ghost"}`}
+              >
                 {l.label}
               </Link>
             ))}
-            <Link href="/anime" className="btn btn-brand whitespace-nowrap text-xs">
-              热门动漫
-            </Link>
-            {TOP_LINKS.slice(3).map((l) => (
-              <Link key={l.href} href={l.href} className={`btn btn-brand whitespace-nowrap text-xs ${isActive(l.href) ? "ring-2 ring-white/40" : ""}`}>
-                {l.label}
-              </Link>
-            ))}
-            <Link href="/watched" className={`btn btn-brand whitespace-nowrap text-xs ${isActive("/watched") ? "ring-2 ring-white/40" : ""}`}>已看</Link>
           </nav>
 
           <div className="ml-auto flex items-center gap-2">
@@ -75,26 +65,57 @@ export default function Nav() {
               <input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="全局搜索…"
+                placeholder="搜索电影 / 剧 / 动漫 / 音乐 / 游戏…"
                 className="w-40 rounded-lg border border-line bg-bg-soft px-3 py-1.5 text-sm outline-none focus:border-accent lg:w-56"
               />
             </form>
+            <Link href="/me" className="btn btn-ghost whitespace-nowrap text-xs">
+              收藏
+            </Link>
             {user ? (
               <div className="flex items-center gap-2">
-                <span className="hidden text-sm text-muted sm:inline">{user.username}</span>
-                <button onClick={onLogout} className="btn btn-ghost">登出</button>
+                <Link href="/me" className="btn btn-brand whitespace-nowrap text-xs">
+                  我的
+                </Link>
+                <button onClick={onLogout} className="btn btn-ghost whitespace-nowrap text-xs">
+                  登出
+                </button>
               </div>
             ) : (
-              <Link href="/login" className="btn btn-brand">登录</Link>
+              <Link href="/login" className="btn btn-brand whitespace-nowrap text-xs">
+                登录
+              </Link>
             )}
           </div>
+        </div>
+
+        {/* 移动端分类横向滚动 */}
+        <div className="flex gap-1 overflow-x-auto px-3 pb-2 lg:hidden">
+          {TOP_LINKS.map((l) => (
+            <Link
+              key={l.href}
+              href={l.href}
+              className={`shrink-0 rounded-lg px-3 py-1.5 text-xs ${isActive(l.href) ? "bg-brand text-white" : "bg-bg-soft text-muted"}`}
+            >
+              {l.label}
+            </Link>
+          ))}
         </div>
       </header>
 
       {/* 移动端底部导航 */}
       <nav className="fixed bottom-0 left-0 right-0 z-40 grid grid-cols-4 border-t border-line bg-bg/95 backdrop-blur md:hidden">
-        {[{ href: "/", label: "首页" }, { href: "/movie", label: "分类" }, { href: "/search", label: "搜索" }, { href: "/watched", label: "已看" }].map((i) => (
-          <Link key={i.href} href={i.href} className={`flex flex-col items-center gap-0.5 py-2 text-[11px] ${isActive(i.href) ? "text-brand" : "text-muted"}`}>
+        {[
+          { href: "/", label: "首页" },
+          { href: "/movie", label: "分类" },
+          { href: "/hot", label: "热榜" },
+          { href: "/me", label: "我的" },
+        ].map((i) => (
+          <Link
+            key={i.href}
+            href={i.href}
+            className={`flex flex-col items-center gap-0.5 py-2 text-[11px] ${isActive(i.href) ? "text-brand" : "text-muted"}`}
+          >
             {i.label}
           </Link>
         ))}
